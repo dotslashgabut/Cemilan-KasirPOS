@@ -13,6 +13,12 @@
 
 Dibuat dengan bantuan [Google AI Studio App](https://aistudio.google.com/apps),[Google Antigravity](https://antigravity.google/), Agent model: Gemini 3 Pro dan Claude Sonnet 4.5
 
+Untuk menambahkan Gemini API, buat file `env.local` isi dengan Gemini API anda.
+```
+GEMINI_API_KEY=PLACEHOLDER_API_KEY
+```
+_Kami belum sempat mencobanya sih._
+
 > Untuk versi lainnya dengan pendekatan database yang berbeda, seperti localStorage, IndexedDB-Dexie, hybrid database (IndexedDB-Dexie + MySQL), dapat dicek di laman rilis repo Cemilan KasirPOS Nusantara - Testing https://github.com/dotslashgabut/cemilan-kasirpos-test/releases
 
 > Video tutorialnya cek aja nanti di [DotSlashGabut YouTube](https://www.youtube.com/@dotslashgabut), _belum sempet bikin_
@@ -21,7 +27,7 @@ Dibuat dengan bantuan [Google AI Studio App](https://aistudio.google.com/apps),[
 
 > via Saweria [**https://saweria.co/dotslashgabut**](https://saweria.co/dotslashgabut)
 
-> via Ko-fi [**https://ko-fi.com/dotslashgabut**](https://saweria.co/dotslashgabut)
+> via Ko-fi [**https://ko-fi.com/dotslashgabut**](https://ko-fi.com/dotslashgabut)
 
 > _Semoga sistem POS (Point of Sale) - Aplikasi Kasir ini bermanfaat bagi semuanya, terutama warung kecil dan UMKM. Terima Kasih._
 
