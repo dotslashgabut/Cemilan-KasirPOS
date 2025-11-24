@@ -153,7 +153,31 @@ export const Settings: React.FC = () => {
     };
 
     // --- DATA MANAGEMENT HANDLERS (SUPERADMIN ONLY) ---
+
+    // Helper: Check if in production mode
+    const isProduction = () => import.meta.env.PROD;
+
+    // Helper: Show production warning
+    const showProductionWarning = (actionName: string): boolean => {
+        if (isProduction()) {
+            const prodWarning = confirm(
+                `⚠️ ANDA SEDANG DI MODE PRODUCTION ⚠️\n\n` +
+                `Tindakan: ${actionName}\n` +
+                `Ini akan mempengaruhi DATA LIVE!\n\n` +
+                `Apakah Anda yakin ingin melanjutkan?`
+            );
+            if (!prodWarning) {
+                alert('❌ Operasi dibatalkan.');
+                return false;
+            }
+        }
+        return true;
+    };
+
     const handleResetProducts = async () => {
+        // Production warning
+        if (!showProductionWarning('Hapus Semua Produk')) return;
+
         const confirmation = prompt('PERINGATAN: Ini akan menghapus SEMUA data produk!\n\nSemua produk yang Anda input akan HILANG PERMANEN!\nStock akan kembali ke 0.\n\nKetik "HAPUS PRODUK" untuk konfirmasi:');
         if (confirmation === 'HAPUS PRODUK') {
             await StorageService.resetProducts();
@@ -165,6 +189,8 @@ export const Settings: React.FC = () => {
     };
 
     const handleResetTransactions = async () => {
+        if (!showProductionWarning('Hapus Semua Transaksi')) return;
+
         const confirmation = prompt('PERINGATAN: Ini akan menghapus SEMUA data transaksi penjualan!\n\nKetik "HAPUS TRANSAKSI" untuk konfirmasi:');
         if (confirmation === 'HAPUS TRANSAKSI') {
             await StorageService.resetTransactions();
@@ -175,6 +201,8 @@ export const Settings: React.FC = () => {
     };
 
     const handleResetPurchases = async () => {
+        if (!showProductionWarning('Hapus Semua Pembelian')) return;
+
         const confirmation = prompt('PERINGATAN: Ini akan menghapus SEMUA data pembelian/stok masuk!\n\nKetik "HAPUS PEMBELIAN" untuk konfirmasi:');
         if (confirmation === 'HAPUS PEMBELIAN') {
             await StorageService.resetPurchases();
@@ -185,6 +213,8 @@ export const Settings: React.FC = () => {
     };
 
     const handleResetCashFlow = async () => {
+        if (!showProductionWarning('Hapus Semua Arus Kas')) return;
+
         const confirmation = prompt('PERINGATAN: Ini akan menghapus SEMUA data arus kas!\n\nKetik "HAPUS ARUS KAS" untuk konfirmasi:');
         if (confirmation === 'HAPUS ARUS KAS') {
             await StorageService.resetCashFlow();
@@ -195,6 +225,8 @@ export const Settings: React.FC = () => {
     };
 
     const handleResetAllFinancial = async () => {
+        if (!showProductionWarning('RESET SEMUA DATA KEUANGAN')) return;
+
         const confirmation = prompt('⚠️ BAHAYA: Ini akan menghapus SEMUA data keuangan (Transaksi, Pembelian, Arus Kas)!\n\nTindakan ini TIDAK DAPAT DIBATALKAN!\n\nKetik "RESET SEMUA" untuk konfirmasi:');
         if (confirmation === 'RESET SEMUA') {
             const doubleConfirm = confirm('Apakah Anda BENAR-BENAR YAKIN ingin menghapus semua data keuangan?');
@@ -211,6 +243,8 @@ export const Settings: React.FC = () => {
     };
 
     const handleResetMasterData = async () => {
+        if (!showProductionWarning('RESET SEMUA MASTER DATA')) return;
+
         const confirmation = prompt('⚠️ BAHAYA: Ini akan me-reset SEMUA Master Data (Produk, Kategori, Pelanggan, Supplier) ke default awal!\n\nData yang Anda input akan HILANG PERMANEN!\n\nKetik "RESET MASTER DATA" untuk konfirmasi:');
         if (confirmation === 'RESET MASTER DATA') {
             const doubleConfirm = confirm('Apakah Anda BENAR-BENAR YAKIN ingin me-reset Master Data ke default?');
@@ -227,6 +261,8 @@ export const Settings: React.FC = () => {
     };
 
     const handleResetAllData = async () => {
+        if (!showProductionWarning('🚨 HAPUS SELURUH DATA 🚨')) return;
+
         const confirmation = prompt('🚨 PERINGATAN EKSTRIM 🚨\n\nIni akan menghapus SELURUH DATA dari database:\n• Transaksi Penjualan\n• Pembelian\n• Arus Kas\n• Produk\n• Kategori\n• Pelanggan\n• Supplier\n\nSEMUA DATA AKAN HILANG PERMANEN!\n\nKetik "HAPUS SEMUA DATA" untuk konfirmasi:');
         if (confirmation === 'HAPUS SEMUA DATA') {
             const doubleConfirm = confirm('⚠️ KONFIRMASI KEDUA ⚠️\n\nAnda akan menghapus SELURUH DATA di aplikasi!\nTindakan ini TIDAK DAPAT DIBATALKAN!\n\nLanjutkan?');
@@ -372,10 +408,7 @@ export const Settings: React.FC = () => {
                                         <input type="checkbox" checked={storeSettings.showJargon} onChange={e => setStoreSettings({ ...storeSettings, showJargon: e.target.checked })} className="w-4 h-4 text-blue-600 rounded" />
                                         <span className="text-sm text-slate-700">Tampilkan Jargon</span>
                                     </label>
-                                    <label className="flex items-center gap-2 cursor-pointer">
-                                        <input type="checkbox" checked={storeSettings.showPhone} onChange={e => setStoreSettings({ ...storeSettings, showPhone: e.target.checked })} className="w-4 h-4 text-blue-600 rounded" />
-                                        <span className="text-sm text-slate-700">Tampilkan Info No. Telepon</span>
-                                    </label>
+
                                     <label className="flex items-center gap-2 cursor-pointer">
                                         <input type="checkbox" checked={storeSettings.showBank} onChange={e => setStoreSettings({ ...storeSettings, showBank: e.target.checked })} className="w-4 h-4 text-blue-600 rounded" />
                                         <span className="text-sm text-slate-700">Tampilkan Info Bank</span>

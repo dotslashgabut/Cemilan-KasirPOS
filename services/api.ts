@@ -296,7 +296,19 @@ export const ApiService = {
             headers: getHeaders(),
             body: JSON.stringify({ ...transaction, date: formattedDate })
         });
-        if (!res.ok) throw new Error('Failed to add transaction');
+
+        if (!res.ok) {
+            let errorMessage = `Failed to add transaction: HTTP ${res.status}`;
+            try {
+                const errorData = await res.json();
+                if (errorData.error) {
+                    errorMessage = errorData.error;
+                }
+            } catch (e) {
+                // Response not JSON, use default error
+            }
+            throw new Error(errorMessage);
+        }
 
         // Update stock for each item (non-blocking - don't throw error if fails)
         const isReturn = transaction.type === 'RETURN';

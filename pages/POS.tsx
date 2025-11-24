@@ -148,34 +148,46 @@ export const POS: React.FC = () => {
       cashierName: currentUser.name || 'Kasir',
     };
 
+
     try {
+      // Step 1: Save Transaction (This is the critical part)
       await StorageService.addTransaction(transaction);
 
-      // Add Cashflow Entry for Sale (if paid > 0)
+      // Step 2: Add Cashflow Entry for Sale (if paid > 0) - Non-blocking
       if (paid > 0) {
-        const paymentMethodText = paymentMethod === PaymentMethod.TRANSFER
-          ? `Transfer${selectedBank ? ` (${selectedBank.bankName})` : ''}`
-          : paymentMethod === PaymentMethod.CASH
-            ? 'Tunai'
-            : 'Tempo';
+        try {
+          const paymentMethodText = paymentMethod === PaymentMethod.TRANSFER
+            ? `Transfer${selectedBank ? ` (${selectedBank.bankName})` : ''}`
+            : paymentMethod === PaymentMethod.CASH
+              ? 'Tunai'
+              : 'Tempo';
 
-        await StorageService.addCashFlow({
-          id: '',
-          date: transaction.date,
-          type: CashFlowType.IN,
-          amount: paid,
-          category: 'Penjualan',
-          description: `Penjualan ke ${customerName} (Tx: ${transaction.id.substring(0, 6)}) via ${paymentMethodText} - ${currentUser.name}`,
-          userId: currentUser.id,
-          userName: currentUser.name
-        });
+          await StorageService.addCashFlow({
+            id: '',
+            date: transaction.date,
+            type: CashFlowType.IN,
+            amount: paid,
+            category: 'Penjualan',
+            description: `Penjualan ke ${customerName} (Tx: ${transaction.id.substring(0, 6)}) via ${paymentMethodText} - ${currentUser.name}`,
+            userId: currentUser.id,
+            userName: currentUser.name
+          });
+        } catch (cashflowError) {
+          console.warn('Cashflow entry failed (non-critical):', cashflowError);
+          // Continue - don't fail the whole transaction
+        }
       }
 
-      // Print Logic
-      const settings = await StorageService.getStoreSettings();
-      printReceipt(transaction, settings);
+      // Step 3: Print Receipt
+      try {
+        const settings = await StorageService.getStoreSettings();
+        printReceipt(transaction, settings);
+      } catch (printError) {
+        console.warn('Print failed (non-critical):', printError);
+        // Continue - transaction was successful
+      }
 
-      // Reset
+      // Step 4: Reset Form & Show Success
       setCart([]);
       setAmountPaid('');
       setPaymentNote('');
@@ -184,10 +196,12 @@ export const POS: React.FC = () => {
       setCustomerName('Pelanggan Umum');
       setShowPaymentModal(false);
       searchInputRef.current?.focus();
+
       alert('Transaksi berhasil!');
     } catch (error) {
-      console.error(error);
-      alert('Gagal memproses transaksi. Silakan coba lagi.');
+      console.error('Transaction failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Gagal memproses transaksi';
+      alert(`Gagal memproses transaksi: ${errorMessage}\n\nSilakan coba lagi atau hubungi admin jika masalah berlanjut.`);
     }
   };
 

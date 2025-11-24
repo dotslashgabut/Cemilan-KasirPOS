@@ -5,8 +5,6 @@ require_once 'validator.php';
 
 // CORS Headers
 // CORS Headers are handled in config.php
-header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With");
 
 // Handle Preflight Options Request
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
