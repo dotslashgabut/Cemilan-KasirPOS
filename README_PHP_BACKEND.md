@@ -1,6 +1,6 @@
 # Dokumentasi Backend PHP - Cemilan KasirPOS
 
-Dokumen ini menjelaskan cara instalasi, konfigurasi, dan penggunaan backend **PHP Native** untuk aplikasi Cemilan KasirPOS. Backend ini adalah alternatif dari backend Node.js dan cocok untuk lingkungan shared hosting tradisional atau server yang sudah menjalankan PHP.
+Dokumen ini menjelaskan cara instalasi, konfigurasi, dan penggunaan backend **PHP Native** untuk aplikasi Cemilan KasirPOS. Backend ini adalah **opsi utama** yang direkomendasikan untuk pengguna shared hosting (cPanel) karena kemudahan deployment dan kompatibilitas yang luas.
 
 ## 📋 Prasyarat
 

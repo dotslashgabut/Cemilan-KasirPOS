@@ -1,6 +1,6 @@
 # Panduan Produksi & Deployment (Production Guide)
 
-Dokumen ini menjelaskan langkah-langkah persiapan sebelum build (build preparation) dan konfigurasi untuk deployment aplikasi ke server produksi (live server) menggunakan **Backend Node.js**.
+Dokumen ini menjelaskan langkah-langkah persiapan sebelum build (build preparation) dan konfigurasi untuk deployment aplikasi ke server produksi (live server). Aplikasi ini mendukung dua backend: **PHP Native** dan **Node.js**. Pilih panduan yang sesuai dengan backend yang Anda gunakan.
 
 ## 1. Konfigurasi CORS (Cross-Origin Resource Sharing)
 
@@ -47,23 +47,29 @@ Sebelum menjalankan perintah build, pastikan konfigurasi aplikasi sudah benar.
 
 ### A. Konfigurasi Environment Variables
 
-1. **Backend (Node.js)**:
-   
-   Buat atau edit file `.env.production` di folder `server`:
-   ```env
-   DB_NAME=nama_database_produksi
-   DB_USER=user_database_produksi
-   DB_PASS=password_database_produksi
-   DB_HOST=localhost
-   PORT=3001
-   JWT_SECRET=rahasia_super_aman_ganti_ini_dengan_string_random
-   NODE_ENV=production
-   ```
-   
-   > **CRITICAL SECURITY NOTE:** 
-   > Pastikan `NODE_ENV=production` selalu diset di server produksi. 
-   > Setting ini mengaktifkan fitur keamanan yang **menyembunyikan detail error (stack traces)** dari pengguna akhir. 
-   > Jika tidak diset, informasi sensitif sistem bisa bocor melalui pesan error. Lihat `SECURITY_AUDIT.md` untuk detailnya.
+1. **Backend (Pilih salah satu)**:
+    
+    *   **Opsi A: PHP Native (Shared Hosting/cPanel)**
+        *   Edit file `php_server/config.php` (atau sesuaikan saat upload nanti).
+        *   Pastikan `SHOW_DEBUG_ERRORS` diset ke `false` untuk keamanan.
+        *   Konfigurasi database dilakukan langsung di file `config.php`.
+
+    *   **Opsi B: Node.js (VPS/Cloud)**
+        *   Buat atau edit file `.env.production` di folder `server`:
+        ```env
+        DB_NAME=nama_database_produksi
+        DB_USER=user_database_produksi
+        DB_PASS=password_database_produksi
+        DB_HOST=localhost
+        PORT=3001
+        JWT_SECRET=rahasia_super_aman_ganti_ini_dengan_string_random
+        NODE_ENV=production
+        ```
+        
+        > **CRITICAL SECURITY NOTE:** 
+        > Pastikan `NODE_ENV=production` selalu diset di server produksi. 
+        > Setting ini mengaktifkan fitur keamanan yang **menyembunyikan detail error (stack traces)** dari pengguna akhir. 
+        > Jika tidak diset, informasi sensitif sistem bisa bocor melalui pesan error. Lihat `SECURITY_AUDIT.md` untuk detailnya.
 
 2. **Frontend (React)**:
    
@@ -98,7 +104,22 @@ Folder `dist` inilah yang berisi aplikasi frontend Anda yang sudah jadi.
 
 ## 3. Langkah Deployment
 
-### Opsi A: Deployment ke VPS (Ubuntu/Debian)
+### Opsi A: Deployment Backend PHP (Shared Hosting / cPanel) - REKOMENDASI
+    
+Metode ini paling mudah dan murah, cocok untuk shared hosting standar.
+
+1.  **Upload Backend**:
+    *   Upload isi folder `php_server` ke folder publik di hosting Anda (misal `public_html/api`).
+2.  **Konfigurasi Database**:
+    *   Edit `config.php` dengan kredensial database hosting.
+3.  **Frontend**:
+    *   Build frontend (`npm run build`).
+    *   Upload folder `dist` ke hosting (misal ke `public_html`).
+    *   Pastikan `.env.production` saat build frontend mengarah ke URL PHP yang benar (misal `https://toko-saya.com/api`).
+4.  **Panduan Detail**:
+    *   Lihat **[README_CPANEL_HOSTING.md](README_CPANEL_HOSTING.md)**.
+
+### Opsi B: Deployment ke VPS (Node.js)
 
 Metode ini menggunakan PM2 untuk menjalankan Node.js dan Nginx sebagai reverse proxy.
 
@@ -159,20 +180,12 @@ Ringkasan langkah:
 
 Lihat panduan lengkap di **[README_DOCKER.md](README_DOCKER.md)** untuk deployment menggunakan Docker dan Docker Compose.
 
-### Opsi D: Deployment Backend PHP (Shared Hosting / VPS)
+### Opsi E: Deployment Backend PHP (Lainnya)
 
-Jika Anda menggunakan backend PHP, proses deployment jauh lebih sederhana, terutama di Shared Hosting.
-
-1.  **Upload File**:
-    *   Upload isi folder `php_server` ke folder publik di hosting Anda (misal `public_html/api` atau subdomain).
-2.  **Konfigurasi Database**:
-    *   Edit `config.php` dengan kredensial database hosting.
-3.  **Frontend**:
-    *   Build frontend (`npm run build`).
-    *   Upload folder `dist` ke hosting.
-    *   Pastikan `.env.production` saat build frontend mengarah ke URL PHP yang benar (misal `https://api.toko-saya.com/index.php/api`).
-4.  **Detail**:
-    *   Lihat **[README_PHP_BACKEND.md](./README_PHP_BACKEND.md)**.
+Jika Anda menggunakan VPS atau server lain untuk PHP:
+1.  Pastikan Web Server (Apache/Nginx) dan PHP terinstall.
+2.  Konfigurasi Virtual Host untuk mengarah ke folder backend.
+3.  Pastikan module `mod_rewrite` aktif jika menggunakan Apache.
 
 ---
 

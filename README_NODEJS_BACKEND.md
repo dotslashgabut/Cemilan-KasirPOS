@@ -1,6 +1,6 @@
 # Dokumentasi Backend Node.js - Cemilan KasirPOS
 
-Dokumen ini menjelaskan cara instalasi, konfigurasi, dan penggunaan backend Node.js yang baru untuk aplikasi Cemilan KasirPOS. Backend ini menggantikan implementasi PHP sebelumnya, menggunakan **Express.js** dan **Sequelize ORM**.
+Dokumen ini menjelaskan cara instalasi, konfigurasi, dan penggunaan backend **Node.js (Express)** untuk aplikasi Cemilan KasirPOS. Backend ini merupakan **opsi alternatif** bagi pengguna yang menginginkan performa tinggi atau menggunakan VPS/Cloud hosting. Backend ini menggunakan **Express.js** dan **Sequelize ORM**.
 
 ## 📋 Prasyarat
 

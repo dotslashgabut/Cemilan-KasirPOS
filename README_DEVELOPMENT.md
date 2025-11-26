@@ -1,6 +1,6 @@
 # Panduan Pengembangan (Development Guide)
 
-Dokumen ini berisi panduan untuk setup lingkungan pengembangan (development environment) untuk aplikasi Cemilan KasirPOS menggunakan **Backend Node.js (Express + Sequelize)**.
+Dokumen ini berisi panduan untuk setup lingkungan pengembangan (development environment) untuk aplikasi Cemilan KasirPOS. Aplikasi ini mendukung dua jenis backend: **PHP Native** dan **Node.js (Express)**. Pilih salah satu sesuai kebutuhan Anda.
 
 ## 📋 Prasyarat (Prerequisites)
 
@@ -22,102 +22,79 @@ git clone https://github.com/dotslashgabut/cemilan-kasirpos.git
 cd cemilan-kasirpos
 ```
 
-### 2. Setup Backend (Node.js & MySQL)
+### 2. Setup Backend
 
-Backend terletak di folder `server` dan menggunakan:
-- **Express.js** - Web framework
-- **Sequelize** - ORM untuk MySQL
-- **JWT** - Autentikasi
-- **bcryptjs** - Password hashing
+Silakan pilih salah satu opsi backend di bawah ini:
 
-#### A. Setup Database
+#### Opsi A: Backend PHP Native (Rekomendasi untuk Shared Hosting)
 
-1. **Buat Database**:
-   ```sql
-   CREATE DATABASE cemilankasirpos CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-   ```
+Jika Anda berencana men-deploy aplikasi ke shared hosting (cPanel), opsi ini paling mudah.
 
-2. **Import Data (Opsional)**:
-   * Untuk data : Import `cemilankasirpos.sql`
-   * **Catatan**: Server akan otomatis membuat tabel jika belum ada (Auto-Sync via Sequelize).
-
-#### B. Instalasi Dependensi Backend
-
-```bash
-cd server
-npm install
-```
-
-Dependensi yang akan terinstall:
-- `express` - Web framework
-- `sequelize` & `mysql2` - Database ORM
-- `jsonwebtoken` - JWT authentication
-- `bcryptjs` - Password encryption
-- `cors` - Cross-Origin Resource Sharing
-- `helmet` - Security headers
-- `express-rate-limit` - Rate limiting
-- `dotenv` - Environment variables
-
-#### C. Konfigurasi Environment
-
-Buat file `.env` di dalam folder `server` dengan isi:
-
-```env
-# Database Configuration
-DB_NAME=cemilankasirpos
-DB_USER=root
-DB_PASS=
-DB_HOST=localhost
-
-# Server Configuration
-PORT=3001
-PORT=3001
-NODE_ENV=development
-# Set ke 'production' untuk menyembunyikan detail error (stack traces)
-
-# Security
-JWT_SECRET=rahasia_development_123_ganti_di_production
-```
-
-**Catatan Penting**:
-- Sesuaikan `DB_USER` dan `DB_PASS` dengan konfigurasi MySQL Anda
-- Kosongkan `DB_PASS` jika menggunakan default XAMPP/Laragon
-- `JWT_SECRET` harus diganti dengan string random yang kuat di production
-
-#### D. Jalankan Server
-
-```bash
-npm start
-```
-
-Server akan berjalan di `http://localhost:3001`.
-
-**Verifikasi Backend**:
-- Buka browser dan akses `http://localhost:3001/api/health` (jika ada health check endpoint)
-- Atau cek terminal untuk pesan "Server running on port 3001"
-
-### 2.1. Alternative: Setup Backend (PHP Native)
-
-Jika Anda lebih memilih menggunakan PHP (misalnya karena keterbatasan hosting), ikuti langkah ini:
-
-1.  **Pastikan PHP & MySQL Terinstall**:
-    *   Gunakan XAMPP, Laragon, atau install PHP manual.
+1.  **Prasyarat**:
+    *   Pastikan PHP (versi 7.4 atau 8.x) dan MySQL terinstall (bisa via XAMPP, Laragon, atau install manual).
     *   Pastikan ekstensi `pdo_mysql` aktif di `php.ini`.
 
 2.  **Setup Database**:
-    *   Sama seperti langkah Node.js di atas, buat database `cemilankasirpos` dan import file SQL.
+    *   Buat database baru bernama `cemilankasirpos`.
+    *   Import file `cemilankasirpos.sql` ke database tersebut.
 
 3.  **Konfigurasi**:
-    *   Edit file `php_server/config.php` sesuai kredensial database Anda.
+    *   Buka file `php_server/config.php`.
+    *   Sesuaikan konfigurasi database:
+        ```php
+        define('DB_HOST', 'localhost');
+        define('DB_USER', 'root'); // Sesuaikan user DB lokal Anda
+        define('DB_PASS', '');     // Sesuaikan password DB lokal Anda
+        define('DB_NAME', 'cemilankasirpos');
+        ```
 
 4.  **Jalankan Server**:
+    *   Buka terminal, masuk ke folder `php_server`:
+        ```bash
+        cd php_server
+        ```
+    *   Jalankan built-in web server PHP:
+        ```bash
+        php -S localhost:3001
+        ```
+    *   Backend akan berjalan di `http://localhost:3001`.
+
+#### Opsi B: Backend Node.js (Express + Sequelize)
+
+Pilih opsi ini jika Anda menginginkan performa tinggi atau menggunakan VPS.
+
+1.  **Masuk ke direktori server**:
     ```bash
-    cd php_server
-    php -S localhost:8000
+    cd server
     ```
 
-5.  **Dokumentasi Lengkap**:
-    *   Lihat **[README_PHP_BACKEND.md](./README_PHP_BACKEND.md)** untuk detail lengkap.
+2.  **Instalasi Dependensi**:
+    ```bash
+    npm install
+    ```
+
+3.  **Setup Database**:
+    *   Buat database `cemilankasirpos` di MySQL.
+    *   (Opsional) Import `cemilankasirpos.sql`. Node.js akan otomatis sinkronisasi tabel, tapi data awal perlu diimport jika ingin dummy data.
+
+4.  **Konfigurasi Environment**:
+    *   Buat file `.env` di dalam folder `server`.
+    *   Isi konfigurasi:
+        ```env
+        DB_NAME=cemilankasirpos
+        DB_USER=root
+        DB_PASS=
+        DB_HOST=localhost
+        PORT=3001
+        NODE_ENV=development
+        JWT_SECRET=rahasia_development_123
+        ```
+
+5.  **Jalankan Server**:
+    ```bash
+    npm start
+    ```
+    *   Server berjalan di `http://localhost:3001`.
 
 ### 3. Setup Frontend (React + Vite)
 
@@ -147,8 +124,11 @@ Frontend menggunakan:
 Buat atau edit file `.env` di root project:
 
 ```env
+```env
 VITE_API_URL=http://localhost:3001/api
 ```
+
+> **Catatan:** Jika Anda menggunakan PHP backend dengan port berbeda (misal 8000), sesuaikan URL di atas (contoh: `http://localhost:8000/api` atau `http://localhost:8000` tergantung konfigurasi routing PHP Anda). Jika menggunakan `php -S localhost:3001`, maka URL di atas sudah benar.
 
 #### C. Jalankan Development Server
 

@@ -13,8 +13,8 @@
 - **Icons**: [Lucide React](https://lucide.dev/)
 - **Charts**: [Recharts](https://recharts.org/)
 - **Backend Options**: 
-  - Option 1: [Node.js (Express)](./README_NODEJS_BACKEND.md) (Recommended for performance)
-  - Option 2: [PHP Native](./README_PHP_BACKEND.md) (Recommended for shared hosting)
+  - **Primary**: [PHP Native](./README_PHP_BACKEND.md) (Recommended for shared hosting & ease of use)
+  - **Alternative**: [Node.js (Express)](./README_NODEJS_BACKEND.md) (High performance option)
 - **Database**: [MySQL](https://www.mysql.com/) (Compatible with both backends)
 
 Dibuat dengan bantuan [Google AI Studio App](https://aistudio.google.com/apps), [Google Antigravity](https://antigravity.google/), Agent model: Gemini 3 Pro dan Claude Sonnet 4.5
@@ -95,7 +95,7 @@ Cemilan KasirPOS is a modern, feature-rich Point of Sale (POS) application desig
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/)
 - **Icons**: [Lucide React](https://lucide.dev/)
 - **Charts**: [Recharts](https://recharts.org/)
-- **Backend**: Node.js (Express) OR PHP Native
+- **Backend**: PHP Native (Primary) OR Node.js (Express)
 - **Database**: MySQL
 
 ## 💾 Data Persistence
@@ -125,9 +125,9 @@ This application uses **MySQL** as the primary database for robust data storage,
                    │ REST API
                    │
 ┌──────────────────▼──────────────────────────────┐
-│       Backend Server (Node.js OR PHP)           │
-│  - API Endpoints (server/ or php_server/)       │
-│  - Express/Sequelize OR PHP Native              │
+│           Backend Server (PHP)                  │
+│  - API Endpoints (php_server/)                  │
+│  - PHP Native                                   │
 └──────────────────┬──────────────────────────────┘
                    │ SQL
                    │
@@ -169,43 +169,27 @@ The application uses the following tables:
 
 2. Import the schema from `cemilankasirpos.sql` (optional, as Sequelize will sync tables, but good for initial structure).
    
-   ### 2. Backend Setup (Node.js)
+   ### 2. Backend Setup (PHP)
 
-3. Navigate to the server directory:
-   
-   ```bash
-   cd server
-   ```
+3.  **Configure Database**:
+    *   Open `php_server/config.php`.
+    *   Update the database credentials:
+        ```php
+        define('DB_HOST', 'localhost');
+        define('DB_USER', 'root');
+        define('DB_PASS', '');
+        define('DB_NAME', 'cemilan_db');
+        ```
 
-4. Install dependencies:
-   
-   ```bash
-   npm install
-   ```
+4.  **Start PHP Server**:
+    *   If you have PHP installed locally:
+        ```bash
+        cd php_server
+        php -S localhost:3001
+        ```
+    *   Or use XAMPP/Laragon and point the document root to `php_server`.
 
-5. Configure Environment Variables:
-   
-   * Create a `.env` file in the `server/` directory.
-   
-   * Add the following configuration (adjust to your local setup):
-     
-     ```env
-     DB_HOST=localhost
-     DB_USER=root
-     DB_PASS=
-     DB_NAME=cemilan_db
-     JWT_SECRET=your_super_secret_jwt_key_change_this
-     PORT=3001
-     ```
-
-6. Start the Backend Server:
-   
-   ```bash
-   npm start
-   ```
-   
-   * The server will run on `http://localhost:3001`.
-   * It will automatically sync the database tables.
+   > **Note:** For Node.js backend setup, see [README_NODEJS_BACKEND.md](./README_NODEJS_BACKEND.md).
    
    ### 3. Frontend Setup (React)
 
