@@ -129,6 +129,15 @@ Sebelum launching, pastikan:
 - [ ] File log dan json sensitif dilindungi dari akses publik.
 
 ### Frontend
+- [ ] Hapus teks 'Default Login (Demo)' login page di `App.tsx`
+  ```html
+  <div className="mt-8 pt-6 border-t border-slate-100 text-center">
+     <p className="text-xs text-slate-400 mb-2">Default Login (Demo):</p>
+     <div className="inline-flex gap-2 text-xs font-mono bg-slate-100 px-3 py-2 rounded-lg text-slate-600">
+        <span>superadmin / password</span>
+     </div>
+  </div>
+  ```
 - [ ] `VITE_API_URL` mengarah ke URL backend produksi yang benar.
 - [ ] Tidak ada console.log atau debug code yang tersisa.
 - [ ] Build production sudah dijalankan (`npm run build`).
