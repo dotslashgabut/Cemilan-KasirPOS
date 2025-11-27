@@ -1,20 +1,37 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
     
-    # Allow Cross-Origin requests (CORS) - Handled in config.php now
-    # Header set Access-Control-Allow-Origin "*"
-    # Header set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
-    # Header set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+    # Set RewriteBase for subfolder installation
+    # This tells Apache that the backend is in /php_server/ subfolder
+    RewriteBase /php_server/
 
-    # Handle Authorization Header
+    # Handle Authorization Header (for JWT/Bearer tokens)
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
-    # Redirect Trailing Slashes...
-    RewriteRule ^(.*)/$ /$1 [L,R=301]
+    # Redirect Trailing Slashes
+    # Remove trailing slash from URLs (except directories)
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(.*)/$ $1 [L,R=301]
 
-    # Handle Front Controller...
+    # Front Controller Pattern
+    # Route all requests to index.php (except existing files/directories)
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
 </IfModule>
+
+# Security: Prevent directory listing
+Options -Indexes
+
+# Security: Prevent access to sensitive files
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Security: Prevent access to log and json files
+<FilesMatch "\.(log|json)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>

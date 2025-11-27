@@ -167,6 +167,10 @@ export const StorageService = {
     await ApiService.addCashFlow(cf);
     notifyListeners('cashflow');
   },
+  deleteCashFlow: async (id: string) => {
+    await ApiService.deleteCashFlow(id);
+    notifyListeners('cashflow');
+  },
 
   // Users
   getUsers: async (): Promise<User[]> => {

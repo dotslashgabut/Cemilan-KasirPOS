@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Nov 25, 2025 at 11:42 AM
+-- Generation Time: Nov 27, 2025 at 10:26 AM
 -- Server version: 8.4.3
--- PHP Version: 8.3.16
+-- PHP Version: 8.3.18
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -18,7 +18,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Database: `cemilankasirpos`
+-- Database: `cemilankasirpos_php`
 --
 
 -- --------------------------------------------------------
@@ -86,6 +86,8 @@ CREATE TABLE `cashflows` (
   `paymentMethod` varchar(255) DEFAULT NULL,
   `bankId` varchar(255) DEFAULT NULL,
   `bankName` varchar(255) DEFAULT NULL,
+  `userId` varchar(255) DEFAULT NULL,
+  `userName` varchar(255) DEFAULT NULL,
   `createdAt` datetime NOT NULL,
   `updatedAt` datetime NOT NULL,
   `referenceId` varchar(255) DEFAULT NULL
@@ -794,7 +796,10 @@ CREATE TABLE `purchases` (
   `paymentHistory` json DEFAULT NULL,
   `createdAt` datetime NOT NULL,
   `updatedAt` datetime NOT NULL,
-  `originalPurchaseId` varchar(255) DEFAULT NULL
+  `originalPurchaseId` varchar(255) DEFAULT NULL,
+  `isReturned` tinyint(1) DEFAULT '0',
+  `userId` varchar(255) DEFAULT NULL,
+  `userName` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
@@ -924,6 +929,7 @@ CREATE TABLE `transactions` (
   `cashierId` varchar(255) DEFAULT NULL,
   `cashierName` varchar(255) DEFAULT NULL,
   `paymentHistory` json DEFAULT NULL,
+  `isReturned` tinyint(1) DEFAULT '0',
   `createdAt` datetime NOT NULL,
   `updatedAt` datetime NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

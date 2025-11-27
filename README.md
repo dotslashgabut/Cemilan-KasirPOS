@@ -1,6 +1,6 @@
 # Cemilan KasirPOS Nusantara
 
-![Static Badge](https://img.shields.io/badge/build-ERROR-red?style=for-the-badge)
+![Static Badge](https://img.shields.io/badge/build-passing-green?style=for-the-badge)
 
 **Bug:** Unknown
 
@@ -12,10 +12,8 @@
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/)
 - **Icons**: [Lucide React](https://lucide.dev/)
 - **Charts**: [Recharts](https://recharts.org/)
-- **Backend Options**: 
-  - **Primary**: [PHP Native](./README_PHP_BACKEND.md) (Recommended for shared hosting & ease of use)
-  - **Alternative**: [Node.js (Express)](./README_NODEJS_BACKEND.md) (High performance option)
-- **Database**: [MySQL](https://www.mysql.com/) (Compatible with both backends)
+- **Backend**: [PHP Native](./README_PHP_BACKEND.md)
+- **Database**: [MySQL](https://www.mysql.com/)
 
 Dibuat dengan bantuan [Google AI Studio App](https://aistudio.google.com/apps), [Google Antigravity](https://antigravity.google/), Agent model: Gemini 3 Pro dan Claude Sonnet 4.5
 
@@ -95,7 +93,7 @@ Cemilan KasirPOS is a modern, feature-rich Point of Sale (POS) application desig
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/)
 - **Icons**: [Lucide React](https://lucide.dev/)
 - **Charts**: [Recharts](https://recharts.org/)
-- **Backend**: PHP Native (Primary) OR Node.js (Express)
+- **Backend**: PHP Native
 - **Database**: MySQL
 
 ## 💾 Data Persistence
@@ -165,9 +163,9 @@ The application uses the following tables:
 * **MySQL**: Ensure MySQL server is installed and running.
   
   ### 1. Database Setup
-1. Create a new MySQL database (e.g., `cemilan_db`).
+1. Create a new MySQL database (e.g., `cemilankasirpos_php`).
 
-2. Import the schema from `cemilankasirpos.sql` (optional, as Sequelize will sync tables, but good for initial structure).
+2. Import the schema from `cemilankasirpos_php.sql` (optional, as Sequelize will sync tables, but good for initial structure).
    
    ### 2. Backend Setup (PHP)
 
@@ -178,18 +176,18 @@ The application uses the following tables:
         define('DB_HOST', 'localhost');
         define('DB_USER', 'root');
         define('DB_PASS', '');
-        define('DB_NAME', 'cemilan_db');
+        define('DB_NAME', 'cemilankasirpos_php');
         ```
 
 4.  **Start PHP Server**:
     *   If you have PHP installed locally:
         ```bash
         cd php_server
-        php -S localhost:3001
+        php -S localhost:8000
         ```
     *   Or use XAMPP/Laragon and point the document root to `php_server`.
 
-   > **Note:** For Node.js backend setup, see [README_NODEJS_BACKEND.md](./README_NODEJS_BACKEND.md).
+
    
    ### 3. Frontend Setup (React)
 
@@ -220,12 +218,12 @@ See [README_DEVELOPMENT.md](./README_DEVELOPMENT.md) for detailed setup instruct
 ├── services/     # API and storage services
 ├── hooks/        # Custom React hooks (useData, etc.)
 ├── utils/        # Utility functions and helpers
-├── server/       # Backend Node.js/Express API files
+├── server/       # (Deprecated) Backend Node.js/Express API files
 ├── types.ts      # TypeScript type definitions
 ├── App.tsx       # Main application component
 ├── index.tsx     # Entry point
 ├── vite.config.ts
-└── cemilankasirpos.sql # Database schema
+└── cemilankasirpos_php.sql # Database schema
 ```
 
 ## 👥 User Roles
@@ -262,11 +260,11 @@ This application can be deployed in various ways:
 
 ### 📖 Available Guides:
 
-1. **[Development Guide](./README_DEVELOPMENT.md)** - Panduan untuk setup lingkungan pengembangan (development environment) untuk aplikasi Cemilan KasirPOS menggunakan Backend Node.js (Express + Sequelize)
-2. **[Production Guide](./README_PRODUCTION.md)** - Langkah-langkah persiapan sebelum build (build preparation) dan konfigurasi untuk deployment aplikasi ke server produksi (live server) menggunakan Backend Node.js
-3. **[cPanel Hosting Guide](./README_CPANEL_HOSTING.md)** - Panduan deploy ke shared hosting menggunakan cPanel
-4. **[Docker Deployment](./README_DOCKER.md)** - Panduan menjalankan aplikasi menggunakan Docker dan Docker Compose
-5. **[Production & CORS Guide](./README_PRODUCTION.md)** - Langkah-langkah detail build dan konfigurasi CORS
+1. **[Development Guide](./README_DEVELOPMENT.md)** - Panduan untuk setup lingkungan pengembangan (development environment) untuk aplikasi Cemilan KasirPOS menggunakan Backend PHP Native
+2. **[Production Guide](./README_PRODUCTION.md)** - Langkah-langkah persiapan sebelum build (build preparation) dan konfigurasi untuk deployment aplikasi ke server produksi (live server)
+3. **[Panduan Hosting cPanel](./README_CPANEL_HOSTING.md)** - Panduan deploy ke shared hosting menggunakan cPanel
+4. **[Panduan Run Locally (Universal)](./README_RUN_LOCALLY.md)** - Panduan menjalankan aplikasi di lokal (XAMPP, Laragon, PHP Built-in)
+5. **[Docker Deployment](./README_DOCKER.md)** - Panduan menjalankan aplikasi menggunakan Docker dan Docker Compose
 
 ## 📝 License
 
@@ -339,7 +337,7 @@ Cemilan KasirPOS adalah aplikasi Point of Sale (POS) modern yang kaya fitur, dir
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/)
 - **Ikon**: [Lucide React](https://lucide.dev/)
 - **Grafik**: [Recharts](https://recharts.org/)
-- **Backend**: Node.js (Express) ATAU PHP Native
+- **Backend**: PHP Native
 - **Database**: MySQL
 
 ## 💾 Penyimpanan Data
@@ -369,9 +367,9 @@ Aplikasi ini menggunakan **MySQL** sebagai database utama untuk penyimpanan data
                    │ REST API
                    │
 ┌──────────────────▼──────────────────────────────┐
-│           Backend Server (Node.js)              │
-│  - Endpoint API (server/)                       │
-│  - Express & Sequelize                          │
+│           Backend Server (PHP)                  │
+│  - Endpoint API (php_server/)                   │
+│  - PHP Native                                   │
 └──────────────────┬──────────────────────────────┘
                    │ SQL
                    │
@@ -391,13 +389,7 @@ Aplikasi ini menggunakan **MySQL** sebagai database utama untuk penyimpanan data
    npm install
    ```
 
-3. **Install Dependensi Backend**:
-   
-   ```bash
-   cd server
-   npm install
-   cd ..
-   ```
+
 
 ## ▶️ Menjalankan Aplikasi
 
@@ -406,20 +398,19 @@ Untuk memulai lingkungan pengembangan:
 1. **Jalankan Server Backend**:
    
    * Pastikan server MySQL Anda berjalan.
-   
    * Masuk ke direktori server:
      
      ```bash
-     cd server
+     cd php_server
      ```
    
    * Jalankan server:
      
      ```bash
-     npm start
+     php -S localhost:8000
      ```
    
-   * Server akan berjalan di `http://localhost:3001`.
+   * Server akan berjalan di `http://localhost:8000`.
 
 2. **Jalankan Aplikasi Frontend** (Di terminal baru):
    
@@ -435,11 +426,11 @@ Aplikasi ini dapat di-deploy dengan berbagai cara:
 
 ### 📖 Panduan yang Tersedia:
 
-1. **[Development Guide](./README_DEVELOPMENT.md)** - Panduan untuk setup lingkungan pengembangan (development environment) untuk aplikasi Cemilan KasirPOS menggunakan Backend Node.js (Express + Sequelize)
-2. **[Production Guide](./README_PRODUCTION.md)** - Langkah-langkah persiapan sebelum build (build preparation) dan konfigurasi untuk deployment aplikasi ke server produksi (live server) menggunakan Backend Node.js
+1. **[Development Guide](./README_DEVELOPMENT.md)** - Panduan untuk setup lingkungan pengembangan (development environment) untuk aplikasi Cemilan KasirPOS menggunakan Backend PHP Native
+2. **[Production Guide](./README_PRODUCTION.md)** - Langkah-langkah persiapan sebelum build (build preparation) dan konfigurasi untuk deployment aplikasi ke server produksi (live server)
 3. **[Panduan Hosting cPanel](./README_CPANEL_HOSTING.md)** - Deploy ke shared hosting dengan cPanel
-4. **[Deployment Docker](./README_DOCKER.md)** - Jalankan dengan Docker dan Docker Compose
-5. **[Production & CORS Guide](./README_PRODUCTION.md)** - Detil build dan tahap konfigurasi CORS
+4. **[Panduan Run Locally (Universal)](./README_RUN_LOCALLY.md)** - Panduan menjalankan aplikasi di lokal (XAMPP, Laragon, PHP Built-in)
+5. **[Deployment Docker](./README_DOCKER.md)** - Jalankan dengan Docker dan Docker Compose
 
 ## 📝 Lisensi
 

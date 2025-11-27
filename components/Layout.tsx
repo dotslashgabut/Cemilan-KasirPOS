@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { LayoutDashboard, ShoppingCart, Package, Receipt, Wallet, Settings, LogOut, Users, Menu, ChevronLeft, Barcode, ShoppingBag, UserCheck, Truck } from 'lucide-react';
 import { UserRole } from '../types';
-
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -11,79 +10,119 @@ interface LayoutProps {
   onLogout: () => void;
 }
 
+// Memoized NavItem component untuk mencegah re-render yang tidak perlu
+const NavItem = React.memo<{
+  item: { id: string; label: string; icon: any };
+  isActive: boolean;
+  isSidebarOpen: boolean;
+  onNavigate: (page: string) => void;
+}>(({ item, isActive, isSidebarOpen, onNavigate }) => {
+  const Icon = item.icon;
+
+  return (
+    <button
+      onClick={() => onNavigate(item.id)}
+      className={`w-full flex items-center ${isSidebarOpen ? 'justify-start gap-3' : 'justify-center'} px-4 py-3 rounded-xl transition-all duration-150 ${isActive
+          ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50'
+          : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+        }`}
+      title={!isSidebarOpen ? item.label : ''}
+    >
+      <Icon size={20} className="flex-shrink-0" />
+      {isSidebarOpen && (
+        <span className="font-medium whitespace-nowrap transition-opacity duration-150">
+          {item.label}
+        </span>
+      )}
+    </button>
+  );
+});
+
+NavItem.displayName = 'NavItem';
+
 export const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate, userRole, onLogout }) => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  // Load sidebar state from localStorage
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
+    const saved = localStorage.getItem('pos_sidebar_open');
+    return saved !== null ? saved === 'true' : true;
+  });
 
-  const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'pos', label: 'Kasir (POS)', icon: ShoppingCart },
-    { id: 'products', label: 'Produk', icon: Package },
-    { id: 'transactions', label: 'Riwayat & Utang', icon: Receipt },
-    { id: 'people', label: 'Kontak', icon: Users },
-    { id: 'finance', label: 'Keuangan', icon: Wallet },
-    { id: 'customer_history', label: 'Riwayat Pelanggan', icon: UserCheck },
-    { id: 'supplier_history', label: 'Riwayat Supplier', icon: Truck },
-    { id: 'sold_items', label: 'Barang Terjual', icon: ShoppingBag },
-  ];
+  // Persist sidebar state to localStorage
+  useEffect(() => {
+    localStorage.setItem('pos_sidebar_open', String(isSidebarOpen));
+  }, [isSidebarOpen]);
 
-  if (userRole === UserRole.OWNER || userRole === UserRole.SUPERADMIN) {
-    navItems.push({ id: 'barcode', label: 'Cetak Barcode', icon: Barcode });
-    navItems.push({ id: 'settings', label: 'Pengaturan', icon: Settings });
-  }
+  // Memoize toggle function
+  const toggleSidebar = useCallback(() => {
+    setIsSidebarOpen(prev => !prev);
+  }, []);
 
+  // Memoize nav items untuk mencegah re-creation setiap render
+  const navItems = useMemo(() => {
+    const items = [
+      { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { id: 'pos', label: 'Kasir (POS)', icon: ShoppingCart },
+      { id: 'products', label: 'Produk', icon: Package },
+      { id: 'transactions', label: 'Riwayat & Utang', icon: Receipt },
+      { id: 'people', label: 'Kontak', icon: Users },
+      { id: 'finance', label: 'Keuangan', icon: Wallet },
+      { id: 'customer_history', label: 'Riwayat Pelanggan', icon: UserCheck },
+      { id: 'supplier_history', label: 'Riwayat Supplier', icon: Truck },
+      { id: 'sold_items', label: 'Barang Terjual', icon: ShoppingBag },
+    ];
 
+    if (userRole === UserRole.OWNER || userRole === UserRole.SUPERADMIN) {
+      items.push({ id: 'barcode', label: 'Cetak Barcode', icon: Barcode });
+      items.push({ id: 'settings', label: 'Pengaturan', icon: Settings });
+    }
+
+    return items;
+  }, [userRole]);
 
   return (
     <div className="flex h-screen bg-slate-100 overflow-hidden">
       {/* Sidebar */}
       <aside
-        className={`${isSidebarOpen ? 'w-64' : 'w-24'} bg-slate-900 text-white flex flex-col shadow-xl z-10 transition-[width] duration-300 ease-in-out transform-gpu`}
+        className={`${isSidebarOpen ? 'w-64' : 'w-24'
+          } bg-slate-900 text-white flex flex-col shadow-xl z-10 transition-all duration-200 ease-out will-change-[width]`}
+        style={{ contain: 'layout style paint' }}
       >
         <div className="p-6 border-b border-slate-800 flex items-center justify-between h-[72px]">
           {isSidebarOpen && (
-            <h1 className="text-2xl font-bold text-blue-400 tracking-tighter whitespace-nowrap animate-fade-in">
+            <h1 className="text-2xl font-bold text-blue-400 tracking-tighter whitespace-nowrap transition-opacity duration-150">
               Cemilan<span className="text-white">.</span>
             </h1>
           )}
           <button
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className={`text-slate-400 hover:text-white bg-slate-800 rounded p-2 border border-slate-700 shadow-sm ${!isSidebarOpen ? 'mx-auto' : ''}`}
+            onClick={toggleSidebar}
+            className={`text-slate-400 hover:text-white bg-slate-800 rounded p-2 border border-slate-700 shadow-sm transition-all duration-150 hover:bg-slate-700 active:scale-95 ${!isSidebarOpen ? 'mx-auto' : ''
+              }`}
+            aria-label={isSidebarOpen ? 'Tutup sidebar' : 'Buka sidebar'}
           >
             <Menu size={18} />
           </button>
         </div>
 
-
-
         <nav className="flex-1 p-4 pt-2 space-y-2 overflow-y-auto overflow-x-hidden sidebar-scroll">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activePage === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => onNavigate(item.id)}
-                className={`w-full flex items-center ${isSidebarOpen ? 'justify-start gap-3' : 'justify-center'} px-4 py-3 rounded-xl transition-all duration-200 ${isActive
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50'
-                  : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                  }`}
-                title={!isSidebarOpen ? item.label : ''}
-              >
-                <Icon size={20} className="flex-shrink-0" />
-                {isSidebarOpen && <span className="font-medium whitespace-nowrap animate-fade-in">{item.label}</span>}
-              </button>
-            );
-          })}
+          {navItems.map((item) => (
+            <NavItem
+              key={item.id}
+              item={item}
+              isActive={activePage === item.id}
+              isSidebarOpen={isSidebarOpen}
+              onNavigate={onNavigate}
+            />
+          ))}
         </nav>
 
         <div className="p-4 border-t border-slate-800">
           <button
             onClick={onLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 hover:bg-red-900/20 transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 hover:bg-red-900/20 transition-all duration-150 active:scale-95"
             title={!isSidebarOpen ? 'Keluar' : ''}
           >
             <LogOut size={20} className="flex-shrink-0" />
-            {isSidebarOpen && <span className="whitespace-nowrap">Keluar</span>}
+            {isSidebarOpen && <span className="whitespace-nowrap transition-opacity duration-150">Keluar</span>}
           </button>
         </div>
       </aside>

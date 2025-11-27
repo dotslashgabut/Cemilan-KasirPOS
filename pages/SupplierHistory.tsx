@@ -5,7 +5,8 @@ import { StorageService } from '../services/storage';
 import { Purchase, PaymentStatus, Supplier, UserRole, User, PaymentMethod, StoreSettings, PurchaseType } from '../types';
 import { formatIDR, formatDate, exportToCSV } from '../utils';
 import { generatePrintPurchaseDetail } from '../utils/printHelpers';
-import { Download, Search, Filter, RotateCcw, X, Eye, Printer } from 'lucide-react';
+import { Download, Search, Filter, RotateCcw, X, Eye, Printer, FileSpreadsheet } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 interface SupplierHistoryProps {
     currentUser: User | null;
@@ -14,6 +15,7 @@ interface SupplierHistoryProps {
 export const SupplierHistory: React.FC<SupplierHistoryProps> = ({ currentUser }) => {
     const purchases = useData(() => StorageService.getPurchases(), [], 'purchases') || [];
     const suppliers = useData(() => StorageService.getSuppliers(), [], 'suppliers') || [];
+    const banks = useData(() => StorageService.getBanks(), [], 'banks') || [];
 
     // State
     const [selectedSupplierId, setSelectedSupplierId] = useState('');
@@ -136,10 +138,43 @@ export const SupplierHistory: React.FC<SupplierHistoryProps> = ({ currentUser })
             p.totalAmount,
             p.amountPaid,
             p.totalAmount - p.amountPaid,
-            p.type === PurchaseType.RETURN ? 'RETUR' : p.paymentStatus,
+            p.type === PurchaseType.RETURN ? 'RETUR' : (p.paymentStatus === 'BELUM_LUNAS' ? 'BELUM LUNAS' : p.paymentStatus) + (p.isReturned ? ' (Ada Retur)' : ''),
             p.paymentMethod
         ]);
         exportToCSV(`riwayat-supplier-${selectedSupplier?.name || 'all'}.csv`, headers, rows);
+    };
+
+    const handleExportExcel = () => {
+        const data = filteredPurchases.map(p => ({
+            'ID Pembelian': p.id,
+            'Tanggal': formatDate(p.date),
+            'Supplier': p.supplierName,
+            'Deskripsi': p.description,
+            'Total': p.totalAmount,
+            'Dibayar': p.amountPaid,
+            'Sisa': p.totalAmount - p.amountPaid,
+            'Status': p.type === PurchaseType.RETURN ? 'RETUR' : (p.paymentStatus === 'BELUM_LUNAS' ? 'BELUM LUNAS' : p.paymentStatus) + (p.isReturned ? ' (Ada Retur)' : ''),
+            'Metode': p.paymentMethod
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(data);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Riwayat Supplier");
+
+        // Auto-width
+        worksheet['!cols'] = [
+            { wch: 15 }, // ID
+            { wch: 15 }, // Tanggal
+            { wch: 20 }, // Supplier
+            { wch: 30 }, // Deskripsi
+            { wch: 15 }, // Total
+            { wch: 15 }, // Dibayar
+            { wch: 15 }, // Sisa
+            { wch: 15 }, // Status
+            { wch: 15 }  // Metode
+        ];
+
+        XLSX.writeFile(workbook, `Riwayat_Supplier_${selectedSupplier?.name || 'All'}_${new Date().toISOString().split('T')[0]}.xlsx`);
     };
 
     const handlePrint = () => {
@@ -156,7 +191,7 @@ export const SupplierHistory: React.FC<SupplierHistoryProps> = ({ currentUser })
                 <td style="text-align:right">${formatIDR(p.totalAmount)}</td>
                 <td style="text-align:right">${formatIDR(p.amountPaid)}</td>
                 <td style="text-align:right">${formatIDR(p.totalAmount - p.amountPaid)}</td>
-                <td>${p.type === PurchaseType.RETURN ? 'RETUR' : p.paymentStatus}</td>
+                <td>${p.type === PurchaseType.RETURN ? 'RETUR' : (p.paymentStatus === 'BELUM_LUNAS' ? 'BELUM LUNAS' : p.paymentStatus) + (p.isReturned ? ' (Ada Retur)' : '')}</td>
             </tr>
         `).join('');
 
@@ -228,8 +263,11 @@ export const SupplierHistory: React.FC<SupplierHistoryProps> = ({ currentUser })
                         <button onClick={handlePrint} className="text-sm flex items-center gap-2 bg-white border border-slate-300 px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50">
                             <Printer size={16} /> Print
                         </button>
+                        <button onClick={handleExportExcel} className="text-sm flex items-center gap-2 bg-green-50 border border-green-200 px-3 py-2 rounded-lg text-green-700 hover:bg-green-100">
+                            <FileSpreadsheet size={16} /> Excel
+                        </button>
                         <button onClick={handleExport} className="text-sm flex items-center gap-2 bg-white border border-slate-300 px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50">
-                            <Download size={16} /> Export CSV
+                            <Download size={16} /> CSV
                         </button>
                     </div>
                 </div>
@@ -365,7 +403,9 @@ export const SupplierHistory: React.FC<SupplierHistoryProps> = ({ currentUser })
                                                     ? 'bg-orange-100 text-orange-600'
                                                     : 'bg-red-100 text-red-600'
                                             }`}>
-                                            {p.type === PurchaseType.RETURN ? 'RETUR' : p.paymentStatus === 'BELUM_LUNAS' ? 'BELUM LUNAS' : p.paymentStatus}
+                                            {p.type === PurchaseType.RETURN
+                                                ? 'RETUR'
+                                                : (p.paymentStatus === 'BELUM_LUNAS' ? 'BELUM LUNAS' : p.paymentStatus) + (p.isReturned ? ' (Ada Retur)' : '')}
                                         </span>
                                     </td>
                                     <td className="p-4 text-slate-600">{p.paymentMethod}</td>
@@ -413,6 +453,14 @@ export const SupplierHistory: React.FC<SupplierHistoryProps> = ({ currentUser })
                                 <div>
                                     <span className="text-slate-500 block text-xs">Metode Awal</span>
                                     <span className="font-medium text-slate-900">{detailPurchase.paymentMethod}</span>
+                                    {(() => {
+                                        if (detailPurchase.bankId) {
+                                            const bank = banks.find(b => b.id === detailPurchase.bankId);
+                                            if (bank) return <span className="block text-xs text-blue-600">via {bank.bankName} {bank.accountNumber}</span>;
+                                        }
+                                        if (detailPurchase.bankName) return <span className="block text-xs text-blue-600">via {detailPurchase.bankName}</span>;
+                                        return null;
+                                    })()}
                                 </div>
                                 <div>
                                     <span className="text-slate-500 block text-xs">Status</span>
@@ -433,12 +481,12 @@ export const SupplierHistory: React.FC<SupplierHistoryProps> = ({ currentUser })
                             </div>
 
                             {/* Return History (If this is a Purchase) */}
-                            {purchases.filter(p => p.type === 'RETURN' && p.description.includes(detailPurchase.id)).length > 0 && (
+                            {purchases.filter(p => p.type === PurchaseType.RETURN && (p.originalPurchaseId === detailPurchase.id || p.description.includes(detailPurchase.id))).length > 0 && (
                                 <div className="mt-6">
                                     <h4 className="font-bold text-sm text-slate-800 mb-2">Riwayat Retur ke Supplier</h4>
                                     <div className="bg-orange-50 rounded-lg p-3 space-y-2 text-sm border border-orange-100">
                                         {purchases
-                                            .filter(p => p.type === 'RETURN' && p.description.includes(detailPurchase.id))
+                                            .filter(p => p.type === PurchaseType.RETURN && (p.originalPurchaseId === detailPurchase.id || p.description.includes(detailPurchase.id)))
                                             .map((ret, i) => (
                                                 <div key={i} className="flex justify-between border-b border-orange-200 last:border-0 pb-2">
                                                     <div>
@@ -459,17 +507,24 @@ export const SupplierHistory: React.FC<SupplierHistoryProps> = ({ currentUser })
                             )}
 
                             {/* Original Purchase Info (If this is a Return) */}
-                            {detailPurchase.type === 'RETURN' && (
+                            {detailPurchase.type === PurchaseType.RETURN && (
                                 <div className="mt-6">
                                     <h4 className="font-bold text-sm text-slate-800 mb-2">Info Pembelian Induk</h4>
                                     <div className="bg-blue-50 rounded-lg p-3 text-sm border border-blue-100">
                                         {(() => {
-                                            // Extract original ID from description if possible, or search by fuzzy match
-                                            // Assuming description format "Retur dari pembelian #ID..."
-                                            const originalIdMatch = detailPurchase.description.match(/#([a-zA-Z0-9-]+)/);
-                                            const originalId = originalIdMatch ? originalIdMatch[1] : null;
+                                            // 1. Coba cari via originalPurchaseId (Prioritas)
+                                            let originalTx = detailPurchase.originalPurchaseId
+                                                ? purchases.find(p => p.id === detailPurchase.originalPurchaseId)
+                                                : null;
 
-                                            const originalTx = originalId ? purchases.find(p => p.id === originalId || p.id.startsWith(originalId)) : null;
+                                            // 2. Fallback: Cari via deskripsi (Regex #ID)
+                                            if (!originalTx) {
+                                                const originalIdMatch = detailPurchase.description.match(/#([a-zA-Z0-9-]+)/);
+                                                const originalId = originalIdMatch ? originalIdMatch[1] : null;
+                                                if (originalId) {
+                                                    originalTx = purchases.find(p => p.id === originalId || p.id.startsWith(originalId));
+                                                }
+                                            }
 
                                             if (originalTx) {
                                                 return (
@@ -506,7 +561,14 @@ export const SupplierHistory: React.FC<SupplierHistoryProps> = ({ currentUser })
                                                 <span className="font-mono bg-slate-200 px-1 rounded text-[10px]">{new Date(ph.date).toLocaleTimeString('id-ID')}</span>
                                             </div>
                                             <span className="text-slate-700 block">{ph.note || 'Pembayaran'} ({ph.method})</span>
-                                            {ph.bankName && <span className="text-[10px] text-blue-600 italic">via {ph.bankName}</span>}
+                                            {(() => {
+                                                if (ph.bankId) {
+                                                    const bank = banks.find(b => b.id === ph.bankId);
+                                                    if (bank) return <span className="text-[10px] text-blue-600 italic">via {bank.bankName} {bank.accountNumber}</span>;
+                                                }
+                                                if (ph.bankName) return <span className="text-[10px] text-blue-600 italic">via {ph.bankName}</span>;
+                                                return null;
+                                            })()}
                                         </div>
                                         <span className="font-medium text-green-600">{formatIDR(ph.amount)}</span>
                                     </div>

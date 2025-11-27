@@ -3,8 +3,9 @@ import { createPortal } from 'react-dom';
 import { useData } from '../hooks/useData';
 import { StorageService } from '../services/storage';
 import { Customer, Supplier, PriceType } from '../types';
-import { Plus, Edit2, Trash2, Phone, MapPin, Search, User, Truck, Download, Printer, Upload, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Phone, MapPin, Search, User, Truck, Download, Printer, Upload, X, FileSpreadsheet } from 'lucide-react';
 import { exportToCSV } from '../utils';
+import * as XLSX from 'xlsx';
 
 export const People: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'customers' | 'suppliers'>('customers');
@@ -97,6 +98,36 @@ export const People: React.FC = () => {
             activeTab === 'customers' ? (d as Customer).defaultPriceType || 'ECERAN' : ''
         ]);
         exportToCSV(filename, headers, rows);
+    };
+
+    const handleExportExcel = () => {
+        const data = activeTab === 'customers' ? customers : suppliers;
+        const sheetName = activeTab === 'customers' ? 'Data Pelanggan' : 'Data Supplier';
+        const fileNamePrefix = activeTab === 'customers' ? 'Data_Pelanggan' : 'Data_Supplier';
+
+        const exportData = data.map(d => ({
+            'ID': d.id,
+            'Nama': d.name,
+            'Telepon': d.phone,
+            'Alamat': d.address || '',
+            ...(activeTab === 'customers' ? { 'Harga Default': (d as Customer).defaultPriceType || 'ECERAN' } : {})
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(exportData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+
+        // Auto-width
+        const max_width = exportData.reduce((w, r) => Math.max(w, r['Nama'].length), 10);
+        worksheet['!cols'] = [
+            { wch: 15 }, // ID
+            { wch: 30 }, // Nama
+            { wch: 15 }, // Telepon
+            { wch: 40 }, // Alamat
+            ...(activeTab === 'customers' ? [{ wch: 15 }] : []) // Harga Default
+        ];
+
+        XLSX.writeFile(workbook, `${fileNamePrefix}_${new Date().toISOString().split('T')[0]}.xlsx`);
     };
 
     const handlePrint = () => {
@@ -215,8 +246,11 @@ export const People: React.FC = () => {
                             onChange={e => setSearch(e.target.value)}
                         />
                     </div>
+                    <button onClick={handleExportExcel} className="bg-green-50 border border-green-200 text-green-700 px-3 py-2 rounded-xl flex items-center gap-2 hover:bg-green-100">
+                        <FileSpreadsheet size={18} /> <span className="hidden md:inline">Excel</span>
+                    </button>
                     <button onClick={handleExport} className="bg-white border border-slate-300 text-slate-700 px-3 py-2 rounded-xl flex items-center gap-2 hover:bg-slate-50">
-                        <Download size={18} /> <span className="hidden md:inline">Export</span>
+                        <Download size={18} /> <span className="hidden md:inline">CSV</span>
                     </button>
                     <button onClick={handlePrint} className="bg-white border border-slate-300 text-slate-700 px-3 py-2 rounded-xl flex items-center gap-2 hover:bg-slate-50">
                         <Printer size={18} /> <span className="hidden md:inline">Print</span>

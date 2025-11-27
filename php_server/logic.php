@@ -11,18 +11,31 @@ function generateUuid() {
     );
 }
 
-function handleTransactionCreate($pdo, $data) {
+function handleTransactionCreate($pdo, $data, $currentUser = null) {
     try {
         $pdo->beginTransaction();
+
+        // Log only ID or minimal info to avoid PII leakage
+        $logId = $data['id'] ?? 'new';
+        file_put_contents('php_error.log', date('[Y-m-d H:i:s] ') . "Processing Transaction ID: $logId\n", FILE_APPEND);
 
         // 1. Create Transaction
         if (empty($data['id'])) {
             $data['id'] = generateUuid();
         }
         
-        // Prepare data for insertion (similar to generic insert but specific to ensure all fields)
-        // We can reuse the generic logic or write specific SQL. Specific is safer for business logic.
-        $columns = ['id', 'type', 'originalTransactionId', 'date', 'items', 'totalAmount', 'amountPaid', 'change', 'paymentStatus', 'paymentMethod', 'paymentNote', 'bankId', 'bankName', 'customerId', 'customerName', 'cashierId', 'cashierName', 'paymentHistory', 'createdAt', 'updatedAt'];
+        // Set defaults
+        $data['type'] = $data['type'] ?? 'SALE';
+        $data['isReturned'] = isset($data['isReturned']) ? ($data['isReturned'] ? 1 : 0) : 0;
+
+        // Auto-fill cashier info if available
+        if ($currentUser) {
+            if (empty($data['cashierId'])) $data['cashierId'] = $currentUser['id'];
+            if (empty($data['cashierName'])) $data['cashierName'] = $currentUser['name'];
+        }
+
+        // Prepare data for insertion
+        $columns = ['id', 'type', 'originalTransactionId', 'date', 'items', 'totalAmount', 'amountPaid', 'change', 'paymentStatus', 'paymentMethod', 'paymentNote', 'bankId', 'bankName', 'customerId', 'customerName', 'cashierId', 'cashierName', 'paymentHistory', 'isReturned', 'createdAt', 'updatedAt'];
         
         $insertData = [];
         foreach ($columns as $col) {
@@ -78,7 +91,13 @@ function handleTransactionCreate($pdo, $data) {
                 $cfAmount = abs($amountPaid);
             } else {
                 $change = floatval($data['change'] ?? 0);
-                $cfAmount = $amountPaid - $change;
+                // Fix: If change is negative (partial payment/debt), do not subtract it.
+                // Cash flow should be exactly what was paid.
+                if ($change < 0) {
+                    $cfAmount = $amountPaid;
+                } else {
+                    $cfAmount = $amountPaid - $change;
+                }
             }
 
             if ($cfAmount > 0) {
@@ -86,9 +105,19 @@ function handleTransactionCreate($pdo, $data) {
                 $category = $isReturn ? 'Retur Penjualan' : 'Penjualan';
                 $customerName = $data['customerName'] ?? 'Umum';
                 $txIdShort = substr($data['id'], 0, 6);
-                $description = $isReturn 
+                $bankInfo = "";
+                if (!empty($data['bankId'])) {
+                    $stmtBank = $pdo->prepare("SELECT bankName, accountNumber FROM bankaccounts WHERE id = ?");
+                    $stmtBank->execute([$data['bankId']]);
+                    $bankRow = $stmtBank->fetch(PDO::FETCH_ASSOC);
+                    if ($bankRow) {
+                        $bankInfo = " (via " . $bankRow['bankName'] . " - " . $bankRow['accountNumber'] . ")";
+                    }
+                }
+
+                $description = ($isReturn 
                     ? "Refund Retur Transaksi #$txIdShort"
-                    : "Penjualan ke $customerName (Tx: $txIdShort)";
+                    : "Penjualan ke $customerName (Tx: $txIdShort)") . $bankInfo;
 
                 $cfData = [
                     'id' => (string)(microtime(true) * 10000), // Simple ID
@@ -100,13 +129,15 @@ function handleTransactionCreate($pdo, $data) {
                     'paymentMethod' => $data['paymentMethod'] ?? 'CASH',
                     'bankId' => $data['bankId'] ?? null,
                     'bankName' => $data['bankName'] ?? null,
+                    'userId' => $currentUser['id'] ?? null,
+                    'userName' => $currentUser['name'] ?? null,
                     'referenceId' => $data['id'],
                     'createdAt' => date('Y-m-d H:i:s'),
                     'updatedAt' => date('Y-m-d H:i:s')
                 ];
 
-                $cfSql = "INSERT INTO cashflows (id, date, type, amount, category, description, paymentMethod, bankId, bankName, referenceId, createdAt, updatedAt) 
-                          VALUES (:id, :date, :type, :amount, :category, :description, :paymentMethod, :bankId, :bankName, :referenceId, :createdAt, :updatedAt)";
+                $cfSql = "INSERT INTO cashflows (id, date, type, amount, category, description, paymentMethod, bankId, bankName, userId, userName, referenceId, createdAt, updatedAt) 
+                          VALUES (:id, :date, :type, :amount, :category, :description, :paymentMethod, :bankId, :bankName, :userId, :userName, :referenceId, :createdAt, :updatedAt)";
                 
                 $cfStmt = $pdo->prepare($cfSql);
                 $cfStmt->execute($cfData);
@@ -123,7 +154,7 @@ function handleTransactionCreate($pdo, $data) {
     }
 }
 
-function handlePurchaseCreate($pdo, $data) {
+function handlePurchaseCreate($pdo, $data, $currentUser = null) {
     try {
         $pdo->beginTransaction();
 
@@ -132,7 +163,17 @@ function handlePurchaseCreate($pdo, $data) {
             $data['id'] = generateUuid();
         }
 
-        $columns = ['id', 'type', 'date', 'supplierId', 'supplierName', 'description', 'items', 'totalAmount', 'amountPaid', 'paymentStatus', 'paymentMethod', 'bankId', 'bankName', 'paymentHistory', 'createdAt', 'updatedAt'];
+        // Set defaults
+        $data['type'] = $data['type'] ?? 'PURCHASE';
+        $data['isReturned'] = isset($data['isReturned']) ? ($data['isReturned'] ? 1 : 0) : 0;
+        
+        // Auto-fill user info if available
+        if ($currentUser) {
+            $data['userId'] = $currentUser['id'];
+            $data['userName'] = $currentUser['name'];
+        }
+
+        $columns = ['id', 'type', 'originalPurchaseId', 'date', 'supplierId', 'supplierName', 'description', 'items', 'totalAmount', 'amountPaid', 'paymentStatus', 'paymentMethod', 'bankId', 'bankName', 'paymentHistory', 'isReturned', 'userId', 'userName', 'createdAt', 'updatedAt'];
         
         $insertData = [];
         foreach ($columns as $col) {
@@ -188,9 +229,19 @@ function handlePurchaseCreate($pdo, $data) {
                 $category = $isReturn ? 'Retur Pembelian' : 'Pembelian Stok';
                 $supplierName = $data['supplierName'] ?? 'Supplier';
                 $descText = $data['description'] ?? '';
-                $description = $isReturn
+                $bankInfo = "";
+                if (!empty($data['bankId'])) {
+                    $stmtBank = $pdo->prepare("SELECT bankName, accountNumber FROM bankaccounts WHERE id = ?");
+                    $stmtBank->execute([$data['bankId']]);
+                    $bankRow = $stmtBank->fetch(PDO::FETCH_ASSOC);
+                    if ($bankRow) {
+                        $bankInfo = " (via " . $bankRow['bankName'] . " - " . $bankRow['accountNumber'] . ")";
+                    }
+                }
+
+                $description = ($isReturn
                     ? "Refund Retur Pembelian dari $supplierName"
-                    : "Pembelian dari $supplierName: $descText";
+                    : "Pembelian dari $supplierName: $descText") . $bankInfo;
 
                 $cfData = [
                     'id' => (string)(microtime(true) * 10000),
@@ -202,13 +253,15 @@ function handlePurchaseCreate($pdo, $data) {
                     'paymentMethod' => $data['paymentMethod'] ?? 'CASH',
                     'bankId' => $data['bankId'] ?? null,
                     'bankName' => $data['bankName'] ?? null,
+                    'userId' => $currentUser['id'] ?? null,
+                    'userName' => $currentUser['name'] ?? null,
                     'referenceId' => $data['id'],
                     'createdAt' => date('Y-m-d H:i:s'),
                     'updatedAt' => date('Y-m-d H:i:s')
                 ];
 
-                $cfSql = "INSERT INTO cashflows (id, date, type, amount, category, description, paymentMethod, bankId, bankName, referenceId, createdAt, updatedAt) 
-                          VALUES (:id, :date, :type, :amount, :category, :description, :paymentMethod, :bankId, :bankName, :referenceId, :createdAt, :updatedAt)";
+                $cfSql = "INSERT INTO cashflows (id, date, type, amount, category, description, paymentMethod, bankId, bankName, userId, userName, referenceId, createdAt, updatedAt) 
+                          VALUES (:id, :date, :type, :amount, :category, :description, :paymentMethod, :bankId, :bankName, :userId, :userName, :referenceId, :createdAt, :updatedAt)";
                 
                 $cfStmt = $pdo->prepare($cfSql);
                 $cfStmt->execute($cfData);
@@ -290,33 +343,16 @@ function handlePurchaseDelete($pdo, $id) {
         $delCf->execute([$id]);
 
         // 3. Find child purchases (Returns)
-        $stmtRet = $pdo->prepare("SELECT * FROM purchases WHERE originalPurchaseId = ?"); // Assuming originalPurchaseId exists or similar logic
-        // Note: Node.js code used 'originalPurchaseId'. I need to check if schema supports it.
-        // The PHP schema for purchases in index.php didn't explicitly list 'originalPurchaseId' but let's assume it's there or add it.
-        // Wait, index.php schema for purchases: ['id', 'type', 'date', 'supplierId', 'supplierName', 'description', 'items', 'totalAmount', 'amountPaid', 'paymentStatus', 'paymentMethod', 'bankId', 'bankName', 'paymentHistory', 'createdAt', 'updatedAt']
-        // It does NOT list 'originalPurchaseId'. Node.js model likely has it.
-        // I should probably add it to the schema in index.php too if I want to support it.
-        
-        // For now let's try to select it. If it fails, it fails.
-        // But wait, if it's not in schema, generic insert won't insert it.
-        // But my custom insert above uses $columns. I didn't include 'originalPurchaseId' in $columns in handlePurchaseCreate.
-        // I should check Node.js model for Purchase.
-        
-        // Let's assume for now we just delete returns if we can find them.
-        // If the column doesn't exist, this query will fail.
-        // I'll check the schema in a moment.
-        
-        // Let's proceed assuming it might be there.
-        try {
-             $stmtRet->execute([$id]);
-             $returns = $stmtRet->fetchAll(PDO::FETCH_ASSOC);
-             foreach ($returns as $ret) {
-                $delCf->execute([$ret['id']]);
-                $delPur = $pdo->prepare("DELETE FROM purchases WHERE id = ?");
-                $delPur->execute([$ret['id']]);
-             }
-        } catch (Exception $ex) {
-            // Column might not exist, ignore
+        $stmtRet = $pdo->prepare("SELECT * FROM purchases WHERE originalPurchaseId = ?");
+        $stmtRet->execute([$id]);
+        $returns = $stmtRet->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($returns as $ret) {
+            // Delete CashFlow for return
+            $delCf->execute([$ret['id']]);
+            // Delete the return purchase
+            $delPur = $pdo->prepare("DELETE FROM purchases WHERE id = ?");
+            $delPur->execute([$ret['id']]);
         }
 
         // 4. Delete the purchase itself

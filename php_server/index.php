@@ -94,9 +94,9 @@ $schemas = [
     'categories' => ['id', 'name', 'createdAt', 'updatedAt'],
     'customers' => ['id', 'name', 'phone', 'address', 'image', 'defaultPriceType', 'createdAt', 'updatedAt'],
     'suppliers' => ['id', 'name', 'phone', 'address', 'image', 'createdAt', 'updatedAt'],
-    'transactions' => ['id', 'type', 'originalTransactionId', 'date', 'items', 'totalAmount', 'amountPaid', 'change', 'paymentStatus', 'paymentMethod', 'paymentNote', 'bankId', 'bankName', 'customerId', 'customerName', 'cashierId', 'cashierName', 'paymentHistory', 'createdAt', 'updatedAt'],
-    'purchases' => ['id', 'type', 'originalPurchaseId', 'date', 'supplierId', 'supplierName', 'description', 'items', 'totalAmount', 'amountPaid', 'paymentStatus', 'paymentMethod', 'bankId', 'bankName', 'paymentHistory', 'createdAt', 'updatedAt'],
-    'cashflows' => ['id', 'date', 'type', 'amount', 'category', 'description', 'paymentMethod', 'bankId', 'bankName', 'userId', 'userName', 'createdAt', 'updatedAt']
+    'transactions' => ['id', 'type', 'originalTransactionId', 'date', 'items', 'totalAmount', 'amountPaid', 'change', 'paymentStatus', 'paymentMethod', 'paymentNote', 'bankId', 'bankName', 'customerId', 'customerName', 'cashierId', 'cashierName', 'paymentHistory', 'isReturned', 'createdAt', 'updatedAt'],
+    'purchases' => ['id', 'type', 'originalPurchaseId', 'date', 'supplierId', 'supplierName', 'description', 'items', 'totalAmount', 'amountPaid', 'paymentStatus', 'paymentMethod', 'bankId', 'bankName', 'paymentHistory', 'isReturned', 'userId', 'userName', 'createdAt', 'updatedAt'],
+    'cashflows' => ['id', 'date', 'type', 'amount', 'category', 'description', 'paymentMethod', 'bankId', 'bankName', 'userId', 'userName', 'referenceId', 'createdAt', 'updatedAt']
 ];
 
 // Helper to filter data against schema
@@ -187,23 +187,40 @@ if ($id === 'batch' && $method === 'POST') {
 // Handle CRUD
 switch ($method) {
     case 'GET':
+        // Require authentication for ALL GET requests to protect all data
+        // (products, customers, suppliers, transactions, purchases, banks, etc.)
+        $currentUser = requireAuth();
+
         if ($id) {
             // Get One
-            // Protect sensitive single resource access
-            if (in_array($resource, ['transactions', 'purchases', 'cashflow', 'users'])) {
-                $currentUser = requireAuth();
-                
-                // RBAC: Only SUPERADMIN can view user details
-                if ($resource === 'users' && $currentUser['role'] !== ROLE_SUPERADMIN) {
-                     // Allow users to view their own profile
-                     if ($id !== $currentUser['id']) {
-                        sendJson(['error' => 'Access denied'], 403);
-                     }
-                }
+            
+            // RBAC: Only SUPERADMIN can view user details
+            if ($resource === 'users' && $currentUser['role'] !== ROLE_SUPERADMIN) {
+                 // Allow users to view their own profile
+                 if ($id !== $currentUser['id']) {
+                    sendJson(['error' => 'Access denied'], 403);
+                 }
             }
 
-            $stmt = $pdo->prepare("SELECT * FROM $tableName WHERE id = ?");
-            $stmt->execute([$id]);
+            $stmt = null;
+            if ($currentUser['role'] === ROLE_CASHIER) {
+                 if ($resource === 'transactions') {
+                     $stmt = $pdo->prepare("SELECT * FROM $tableName WHERE id = ? AND cashierId = ?");
+                     $stmt->execute([$id, $currentUser['id']]);
+                 } elseif ($resource === 'purchases') {
+                     $stmt = $pdo->prepare("SELECT * FROM $tableName WHERE id = ? AND userId = ?");
+                     $stmt->execute([$id, $currentUser['id']]);
+                 } elseif ($resource === 'cashflows') {
+                     $stmt = $pdo->prepare("SELECT * FROM $tableName WHERE id = ? AND userId = ?");
+                     $stmt->execute([$id, $currentUser['id']]);
+                 }
+            }
+            
+            if (!$stmt) {
+                $stmt = $pdo->prepare("SELECT * FROM $tableName WHERE id = ?");
+                $stmt->execute([$id]);
+            }
+            
             $item = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if ($item) {
@@ -227,17 +244,31 @@ switch ($method) {
             }
         } else {
             // Get All
-            // Protect sensitive list access
-            if (in_array($resource, ['transactions', 'purchases', 'cashflow', 'users'])) {
-                $currentUser = requireAuth();
-                
-                // RBAC: Only SUPERADMIN can view user list
-                if ($resource === 'users' && $currentUser['role'] !== ROLE_SUPERADMIN) {
-                    sendJson(['error' => 'Access denied'], 403);
+            
+            // RBAC: Only SUPERADMIN can view user list
+            if ($resource === 'users' && $currentUser['role'] !== ROLE_SUPERADMIN) {
+                sendJson(['error' => 'Access denied'], 403);
+            }
+
+            $sql = "SELECT * FROM $tableName";
+            $params = [];
+
+            // FILTER FOR CASHIER: Only show their own data for financial tables
+            if ($currentUser['role'] === ROLE_CASHIER) {
+                if ($resource === 'transactions') {
+                    $sql .= " WHERE cashierId = ?";
+                    $params[] = $currentUser['id'];
+                } elseif ($resource === 'purchases') {
+                    $sql .= " WHERE userId = ?";
+                    $params[] = $currentUser['id'];
+                } elseif ($resource === 'cashflows') {
+                    $sql .= " WHERE userId = ?";
+                    $params[] = $currentUser['id'];
                 }
             }
 
-            $stmt = $pdo->query("SELECT * FROM $tableName");
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute($params);
             $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
             // Decode JSON fields
@@ -290,11 +321,11 @@ switch ($method) {
 
         // --- Custom Logic for Transactions and Purchases ---
         if ($resource === 'transactions') {
-            handleTransactionCreate($pdo, $data);
+            handleTransactionCreate($pdo, $data, $currentUser);
             exit(); // handleTransactionCreate sends response and exits
         }
         if ($resource === 'purchases') {
-            handlePurchaseCreate($pdo, $data);
+            handlePurchaseCreate($pdo, $data, $currentUser);
             exit(); // handlePurchaseCreate sends response and exits
         }
         // ---------------------------------------------------
@@ -358,7 +389,7 @@ switch ($method) {
             $stmt->execute($data);
             sendJson($data, 201);
         } catch (Exception $e) {
-            file_put_contents('php_error.log', date('[Y-m-d H:i:s] ') . "POST Error ($tableName): " . $e->getMessage() . "\nSQL: $sql\nData: " . json_encode($data) . "\n", FILE_APPEND);
+            file_put_contents('php_error.log', date('[Y-m-d H:i:s] ') . "POST Error ($tableName): " . $e->getMessage() . "\n", FILE_APPEND);
             sendJson(['error' => (defined('SHOW_DEBUG_ERRORS') && SHOW_DEBUG_ERRORS) ? $e->getMessage() : 'Internal Server Error'], 500);
         }
         break;
@@ -466,9 +497,9 @@ switch ($method) {
             requireRole([ROLE_SUPERADMIN]);
         }
         
-        // Only SUPERADMIN can delete financial data (for data safety)
+        // Only SUPERADMIN and OWNER can delete financial data (for data safety)
         if (in_array($resource, ['transactions', 'purchases', 'cashflow'])) {
-            requireRole([ROLE_SUPERADMIN]);
+            requireRole([ROLE_SUPERADMIN, ROLE_OWNER]);
         }
         
         // Cashiers cannot delete master data

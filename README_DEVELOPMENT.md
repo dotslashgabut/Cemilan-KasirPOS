@@ -1,6 +1,6 @@
 # Panduan Pengembangan (Development Guide)
 
-Dokumen ini berisi panduan untuk setup lingkungan pengembangan (development environment) untuk aplikasi Cemilan KasirPOS. Aplikasi ini mendukung dua jenis backend: **PHP Native** dan **Node.js (Express)**. Pilih salah satu sesuai kebutuhan Anda.
+Dokumen ini berisi panduan untuk setup lingkungan pengembangan (development environment) untuk aplikasi Cemilan KasirPOS. Aplikasi ini menggunakan backend **PHP Native**.
 
 ## 📋 Prasyarat (Prerequisites)
 
@@ -24,9 +24,8 @@ cd cemilan-kasirpos
 
 ### 2. Setup Backend
 
-Silakan pilih salah satu opsi backend di bawah ini:
+### 2. Setup Backend (PHP Native)
 
-#### Opsi A: Backend PHP Native (Rekomendasi untuk Shared Hosting)
 
 Jika Anda berencana men-deploy aplikasi ke shared hosting (cPanel), opsi ini paling mudah.
 
@@ -35,8 +34,8 @@ Jika Anda berencana men-deploy aplikasi ke shared hosting (cPanel), opsi ini pal
     *   Pastikan ekstensi `pdo_mysql` aktif di `php.ini`.
 
 2.  **Setup Database**:
-    *   Buat database baru bernama `cemilankasirpos`.
-    *   Import file `cemilankasirpos.sql` ke database tersebut.
+    *   Buat database baru bernama `cemilankasirpos_php`.
+    *   Import file `cemilankasirpos_php.sql` ke database tersebut.
 
 3.  **Konfigurasi**:
     *   Buka file `php_server/config.php`.
@@ -45,7 +44,7 @@ Jika Anda berencana men-deploy aplikasi ke shared hosting (cPanel), opsi ini pal
         define('DB_HOST', 'localhost');
         define('DB_USER', 'root'); // Sesuaikan user DB lokal Anda
         define('DB_PASS', '');     // Sesuaikan password DB lokal Anda
-        define('DB_NAME', 'cemilankasirpos');
+        define('DB_NAME', 'cemilankasirpos_php');
         ```
 
 4.  **Jalankan Server**:
@@ -55,46 +54,11 @@ Jika Anda berencana men-deploy aplikasi ke shared hosting (cPanel), opsi ini pal
         ```
     *   Jalankan built-in web server PHP:
         ```bash
-        php -S localhost:3001
+        php -S localhost:8000
         ```
-    *   Backend akan berjalan di `http://localhost:3001`.
+    *   Backend akan berjalan di `http://localhost:8000`.
 
-#### Opsi B: Backend Node.js (Express + Sequelize)
 
-Pilih opsi ini jika Anda menginginkan performa tinggi atau menggunakan VPS.
-
-1.  **Masuk ke direktori server**:
-    ```bash
-    cd server
-    ```
-
-2.  **Instalasi Dependensi**:
-    ```bash
-    npm install
-    ```
-
-3.  **Setup Database**:
-    *   Buat database `cemilankasirpos` di MySQL.
-    *   (Opsional) Import `cemilankasirpos.sql`. Node.js akan otomatis sinkronisasi tabel, tapi data awal perlu diimport jika ingin dummy data.
-
-4.  **Konfigurasi Environment**:
-    *   Buat file `.env` di dalam folder `server`.
-    *   Isi konfigurasi:
-        ```env
-        DB_NAME=cemilankasirpos
-        DB_USER=root
-        DB_PASS=
-        DB_HOST=localhost
-        PORT=3001
-        NODE_ENV=development
-        JWT_SECRET=rahasia_development_123
-        ```
-
-5.  **Jalankan Server**:
-    ```bash
-    npm start
-    ```
-    *   Server berjalan di `http://localhost:3001`.
 
 ### 3. Setup Frontend (React + Vite)
 
@@ -125,10 +89,10 @@ Buat atau edit file `.env` di root project:
 
 ```env
 ```env
-VITE_API_URL=http://localhost:3001/api
+VITE_API_URL=http://localhost:8000/api
 ```
 
-> **Catatan:** Jika Anda menggunakan PHP backend dengan port berbeda (misal 8000), sesuaikan URL di atas (contoh: `http://localhost:8000/api` atau `http://localhost:8000` tergantung konfigurasi routing PHP Anda). Jika menggunakan `php -S localhost:3001`, maka URL di atas sudah benar.
+> **Catatan:** Jika Anda menggunakan PHP backend dengan port berbeda, sesuaikan URL di atas. Jika menggunakan `php -S localhost:8000`, maka URL di atas sudah benar.
 
 #### C. Jalankan Development Server
 
@@ -159,14 +123,7 @@ cemilan-kasirpos/
 │   └── api.ts               # Axios instance & API calls
 ├── hooks/                    # Custom React hooks
 ├── utils/                    # Utility functions
-├── server/                   # Backend (Node.js + Express)
-│   ├── config/               # Konfigurasi
-│   │   └── database.js      # Sequelize connection
-│   ├── models/               # Sequelize models
-│   │   └── index.js         # Model definitions & associations
-│   ├── index.js             # Entry point & route handlers
-│   ├── .env                 # Environment variables (jangan commit!)
-│   └── package.json         # Backend dependencies
+├── server/                   # (Deprecated) Backend Node.js/Express API files
 │
 ├── public/                   # Static assets
 ├── App.tsx                  # Main app component
@@ -183,30 +140,14 @@ cemilan-kasirpos/
 
 ### Backend Development
 
-1. **Membuat Model Baru**:
-   - Tambahkan definisi model di `server/models/index.js`
-   - Sequelize akan otomatis membuat tabel saat server restart (jika `sync()` aktif)
+1. **Membuat Endpoint Baru**:
+   - Edit `php_server/index.php` atau buat file baru di `php_server/`
+   - Tambahkan logika di `php_server/logic.php` jika kompleks
+   - Test dengan Postman/Curl
 
-2. **Menambah API Endpoint**:
-   - Edit `server/index.js`
-   - Tambahkan route handler baru
-   - Restart server untuk melihat perubahan
-
-3. **Testing API**:
+2. **Testing API**:
    - Gunakan Postman, Thunder Client, atau curl
    - Contoh: `curl http://localhost:3001/api/products`
-
-4. **Hot Reload** (Opsional):
-   ```bash
-   # Install nodemon sebagai dev dependency
-   npm install --save-dev nodemon
-   
-   # Edit package.json, tambahkan script:
-   "dev": "nodemon index.js"
-   
-   # Jalankan dengan:
-   npm run dev
-   ```
 
 ### Frontend Development
 
@@ -237,14 +178,14 @@ cemilan-kasirpos/
 
 2. **Reset Database**:
    ```sql
-   DROP DATABASE cemilankasirpos;
-   CREATE DATABASE cemilankasirpos;
+   DROP DATABASE cemilankasirpos_php;
+   CREATE DATABASE cemilankasirpos_php;
    -- Import ulang file .sql
    ```
 
 3. **Backup Database**:
    ```bash
-   mysqldump -u root -p cemilankasirpos > backup.sql
+   mysqldump -u root -p cemilankasirpos_php > backup.sql
    ```
 
 ## 🐛 Troubleshooting
@@ -263,26 +204,21 @@ Error: connect ECONNREFUSED 127.0.0.1:3306
 
 **❌ Port Already in Use**
 ```
-Error: listen EADDRINUSE: address already in use :::3001
+Error: listen EADDRINUSE: address already in use :::8000
 ```
 **Solusi**:
-- Cari proses yang menggunakan port: `netstat -ano | findstr :3001` (Windows)
+- Cari proses yang menggunakan port: `netstat -ano | findstr :8000` (Windows)
 - Kill proses tersebut atau ubah `PORT` di `.env`
 
-**❌ JWT Secret Error**
-```
-Error: secretOrPrivateKey must have a value
-```
-**Solusi**:
-- Pastikan `JWT_SECRET` ada di `server/.env`
+
 
 **❌ CORS Error**
 ```
 Access to fetch at 'http://localhost:3001/api/...' has been blocked by CORS policy
 ```
 **Solusi**:
-- Cek konfigurasi CORS di `server/index.js`
-- Pastikan `http://localhost:5173` ada di `corsOptions.origin`
+- Cek konfigurasi CORS di `php_server/config.php`
+- Pastikan `http://localhost:5173` diizinkan
 
 ### Frontend Issues
 
@@ -310,7 +246,7 @@ Error: Cannot find module 'lucide-react'
 ### General Issues
 
 **❌ Changes Not Reflecting**
-- **Backend**: Restart server (atau gunakan nodemon)
+- **Backend**: Restart server PHP jika perlu (biasanya tidak perlu untuk PHP Native kecuali config berubah)
 - **Frontend**: Vite HMR biasanya otomatis, coba hard refresh (Ctrl+Shift+R)
 - **Environment Variables**: Restart server/dev setelah edit `.env`
 
@@ -321,8 +257,7 @@ sudo chown -R $USER:$USER .
 
 ## 📚 Resources & Documentation
 
-- [Express.js Documentation](https://expressjs.com/)
-- [Sequelize Documentation](https://sequelize.org/)
+- [PHP Documentation](https://www.php.net/docs.php)
 - [React Documentation](https://react.dev/)
 - [Vite Documentation](https://vitejs.dev/)
 - [Tailwind CSS Documentation](https://tailwindcss.com/)
@@ -365,6 +300,6 @@ git push origin feature/nama-fitur
 Setelah development environment berjalan:
 1. Pelajari struktur kode yang ada
 2. Coba fitur-fitur yang sudah ada
-3. Baca dokumentasi API di `server/index.js`
+3. Baca dokumentasi API di `php_server/`
 4. Mulai develop fitur baru atau fix bugs
 5. Lihat `README_PRODUCTION.md` untuk panduan deployment

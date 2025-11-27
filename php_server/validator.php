@@ -35,8 +35,12 @@ function validateInput($resource, $data) {
             break;
             
         case 'transactions':
-            if (isset($data['totalAmount']) && (!is_numeric($data['totalAmount']) || $data['totalAmount'] < 0)) {
-                $errors[] = "Total amount must be a positive number";
+            if (isset($data['totalAmount'])) {
+                if (!is_numeric($data['totalAmount'])) {
+                    $errors[] = "Total amount must be a number";
+                } elseif ((!isset($data['type']) || $data['type'] !== 'RETURN') && $data['totalAmount'] < 0) {
+                    $errors[] = "Total amount must be a positive number";
+                }
             }
             break;
     }

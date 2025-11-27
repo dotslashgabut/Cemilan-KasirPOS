@@ -24,7 +24,7 @@ Buka file `config.php` dan sesuaikan kredensial database Anda:
 ```php
 // config.php
 define('DB_HOST', 'localhost');
-define('DB_NAME', 'cemilankasirpos'); // Pastikan nama database sesuai
+define('DB_NAME', 'cemilankasirpos_php'); // Pastikan nama database sesuai
 define('DB_USER', 'root');
 define('DB_PASS', ''); // Isi password jika ada
 ```
@@ -91,11 +91,12 @@ File `logic.php` menangani operasi kompleks seperti:
 *   **Pembelian Stok**: Menambah stok otomatis & mencatat pengeluaran.
 *   **Cascade Delete**: Menghapus transaksi akan otomatis menghapus data arus kas terkait.
 
-### 3. Keamanan
+### 3. Keamanan (Diperbarui)
 *   **JWT Authentication**: Menggunakan token JSON Web Token untuk sesi login.
 *   **Password Hashing**: Mendukung verifikasi password `bcrypt`.
-*   **Auto-Upgrade Password**: Jika user login dengan password plain-text (legacy), sistem otomatis meng-update-nya menjadi hash `bcrypt` yang aman.
-*   **Rate Limiting**: Mencegah brute-force pada endpoint login.
+*   **Rate Limiting**: Mencegah brute-force pada endpoint login dengan mekanisme *file locking* untuk mencegah race condition.
+*   **Data Sanitization**: Log transaksi tidak lagi mencatat data sensitif (PII) secara lengkap.
+*   **Secure Logging**: File log (`php_error.log`) dan data rate limit (`login_attempts.json`) dilindungi dari akses publik via browser.
 
 ## 🛠 Troubleshooting
 
@@ -103,11 +104,14 @@ File `logic.php` menangani operasi kompleks seperti:
     *   Pastikan `config.php` sudah mengatur header `Access-Control-Allow-Origin` dengan benar.
     *   Pastikan URL frontend sesuai dengan yang diizinkan (atau `*` untuk development).
 *   **Error: "Database connection failed"**
-    *   Cek kredensial di `config.php`.
+    *   Cek kredensial di `config.php` atau file `.env`.
     *   Pastikan ekstensi `pdo_mysql` aktif di `php.ini`.
 *   **Error: "Route not found" atau 404**
     *   Jika menggunakan Apache, pastikan `.htaccess` aktif dan `mod_rewrite` dinyalakan.
     *   Jika menggunakan PHP Built-in Server, pastikan menjalankannya dari dalam folder `php_server`.
+*   **Tidak bisa akses Log Error di Browser**
+    *   Ini adalah fitur keamanan. File `.log` dan `.json` diblokir dari akses browser.
+    *   Silakan buka file `php_error.log` secara manual lewat File Explorer atau File Manager cPanel.
 
 ---
 *Dibuat untuk Cemilan KasirPOS Nusantara*

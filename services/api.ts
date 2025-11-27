@@ -2,7 +2,7 @@ import { Product, Transaction, User, CashFlow, Category, Customer, Supplier, Pur
 import { generateUUID, toMySQLDate } from "../utils";
 
 const isProd = import.meta.env.PROD;
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost/php_server/api';
 
 // Get headers with authentication
 const getHeaders = () => {
@@ -630,6 +630,10 @@ export const ApiService = {
             body: JSON.stringify({ ...cf, id: cf.id || generateUUID(), date: formattedDate })
         });
         if (!res.ok) throw new Error('Failed to add cashflow');
+    },
+    deleteCashFlow: async (id: string) => {
+        const res = await fetch(`${API_URL}/cashflow/${id}`, { method: 'DELETE', headers: getHeaders() });
+        if (!res.ok) throw new Error('Failed to delete cashflow');
     },
 
     // Users

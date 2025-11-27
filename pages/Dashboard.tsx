@@ -4,7 +4,7 @@ import { Brain, TrendingUp, AlertCircle, Wallet, RefreshCw, Calendar, Package, U
 import { StorageService } from '../services/storage';
 import { getBusinessInsights } from '../services/geminiService';
 import { formatIDR } from '../utils';
-import { Transaction, Product, CartItem, User } from '../types';
+import { Transaction, Product, CartItem, User, TransactionType } from '../types';
 import { useData } from '../hooks/useData';
 
 export const Dashboard: React.FC = () => {
@@ -82,7 +82,9 @@ export const Dashboard: React.FC = () => {
   const lowStockItems = useMemo(() => products.filter(p => p.stock < 10).length, [products]);
   const totalItemsSold = useMemo(() => {
     return filteredTxs.reduce((sum, t) => {
-      return sum + t.items.reduce((itemSum, item) => itemSum + item.qty, 0);
+      const itemQty = t.items.reduce((itemSum, item) => itemSum + item.qty, 0);
+      // Subtract quantity for RETURN transactions, add for normal SALE transactions
+      return sum + (t.type === TransactionType.RETURN ? -itemQty : itemQty);
     }, 0);
   }, [filteredTxs]);
 
@@ -146,7 +148,9 @@ export const Dashboard: React.FC = () => {
     filteredTxs.forEach(tx => {
       tx.items.forEach(item => {
         const current = itemMap.get(item.name) || 0;
-        itemMap.set(item.name, current + item.qty);
+        // Subtract for RETURN transactions
+        const qty = tx.type === TransactionType.RETURN ? -item.qty : item.qty;
+        itemMap.set(item.name, current + qty);
       });
     });
 
@@ -163,7 +167,9 @@ export const Dashboard: React.FC = () => {
       tx.items.forEach(item => {
         const catName = item.categoryName || 'Lainnya';
         const current = catMap.get(catName) || 0;
-        catMap.set(catName, current + (item.finalPrice * item.qty));
+        // Subtract for RETURN transactions
+        const value = tx.type === TransactionType.RETURN ? -(item.finalPrice * item.qty) : (item.finalPrice * item.qty);
+        catMap.set(catName, current + value);
       });
     });
 
@@ -179,7 +185,9 @@ export const Dashboard: React.FC = () => {
       tx.items.forEach(item => {
         const catName = item.categoryName || 'Lainnya';
         const current = catMap.get(catName) || 0;
-        catMap.set(catName, current + item.qty);
+        // Subtract for RETURN transactions
+        const qty = tx.type === TransactionType.RETURN ? -item.qty : item.qty;
+        catMap.set(catName, current + qty);
       });
     });
 
@@ -199,7 +207,8 @@ export const Dashboard: React.FC = () => {
       filteredTxs.forEach(t => {
         const hour = new Date(t.date).getHours();
         const itemCount = t.items.reduce((sum, item) => sum + item.qty, 0);
-        data[hour].total += itemCount;
+        // Subtract for RETURN transactions
+        data[hour].total += (t.type === TransactionType.RETURN ? -itemCount : itemCount);
       });
       return data;
     } else if (timeFilter === 'weekly') {
@@ -209,7 +218,8 @@ export const Dashboard: React.FC = () => {
       filteredTxs.forEach(t => {
         const dayIndex = new Date(t.date).getDay();
         const itemCount = t.items.reduce((sum, item) => sum + item.qty, 0);
-        data[dayIndex].total += itemCount;
+        // Subtract for RETURN transactions
+        data[dayIndex].total += (t.type === TransactionType.RETURN ? -itemCount : itemCount);
       });
 
       const sunday = data.shift();
@@ -229,7 +239,8 @@ export const Dashboard: React.FC = () => {
         const date = new Date(t.date).getDate();
         const itemCount = t.items.reduce((sum, item) => sum + item.qty, 0);
         if (date <= daysInMonth) {
-          data[date - 1].total += itemCount;
+          // Subtract for RETURN transactions
+          data[date - 1].total += (t.type === TransactionType.RETURN ? -itemCount : itemCount);
         }
       });
       return data;
@@ -240,7 +251,8 @@ export const Dashboard: React.FC = () => {
       filteredTxs.forEach(t => {
         const month = new Date(t.date).getMonth();
         const itemCount = t.items.reduce((sum, item) => sum + item.qty, 0);
-        data[month].total += itemCount;
+        // Subtract for RETURN transactions
+        data[month].total += (t.type === TransactionType.RETURN ? -itemCount : itemCount);
       });
 
       return data;

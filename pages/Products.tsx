@@ -4,7 +4,8 @@ import { useData } from '../hooks/useData';
 import { StorageService } from '../services/storage';
 import { Product, Category, UserRole } from '../types';
 import { formatIDR, exportToCSV, generateSKU } from '../utils';
-import { Edit2, Trash2, Plus, X, Download, Upload, Tag, Barcode, Image as ImageIcon, Search, Printer, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import * as XLSX from 'xlsx';
+import { Edit2, Trash2, Plus, X, Download, Upload, Tag, Barcode, Image as ImageIcon, Search, Printer, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, FileSpreadsheet } from 'lucide-react';
 
 export const Products: React.FC = () => {
   const products = useData(() => StorageService.getProducts(), [], 'products') || [];
@@ -154,6 +155,42 @@ export const Products: React.FC = () => {
       p.id, p.name, p.sku, p.categoryName, p.stock, p.hpp, p.priceRetail, p.priceGeneral, p.priceWholesale, p.pricePromo || 0
     ]);
     exportToCSV(`produk-${new Date().toISOString().split('T')[0]}.csv`, headers, rows);
+  };
+
+  const handleExportExcel = () => {
+    const data = filteredProducts.map(p => ({
+      'ID': p.id,
+      'Nama Produk': p.name,
+      'SKU': p.sku,
+      'Kategori': p.categoryName,
+      'Stok': p.stock,
+      'HPP': p.hpp,
+      'Harga Eceran': p.priceRetail,
+      'Harga Umum': p.priceGeneral,
+      'Harga Grosir': p.priceWholesale,
+      'Harga Promo': p.pricePromo || 0
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Daftar Produk");
+
+    // Auto-width columns
+    const max_width = data.reduce((w, r) => Math.max(w, r['Nama Produk'].length), 10);
+    worksheet['!cols'] = [
+      { wch: 15 }, // ID
+      { wch: 30 }, // Nama
+      { wch: 15 }, // SKU
+      { wch: 15 }, // Kategori
+      { wch: 10 }, // Stok
+      { wch: 15 }, // HPP
+      { wch: 15 }, // Eceran
+      { wch: 15 }, // Umum
+      { wch: 15 }, // Grosir
+      { wch: 15 }  // Promo
+    ];
+
+    XLSX.writeFile(workbook, `Produk_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   const handlePrint = () => {
@@ -340,14 +377,17 @@ export const Products: React.FC = () => {
             <Upload size={16} /> Import CSV
             <input type="file" accept=".csv" className="hidden" onChange={handleImport} />
           </label>
+          <button onClick={handleExportExcel} className="bg-green-50 border border-green-200 text-green-700 px-3 py-2 rounded-lg flex items-center gap-2 hover:bg-green-100 text-sm font-medium">
+            <FileSpreadsheet size={16} /> Excel
+          </button>
           <button onClick={handleExport} className="bg-white border border-slate-300 text-slate-700 px-3 py-2 rounded-lg flex items-center gap-2 hover:bg-slate-50 text-sm font-medium">
-            <Download size={16} /> Export
+            <Download size={16} /> CSV
           </button>
           <button onClick={handlePrint} className="bg-white border border-slate-300 text-slate-700 px-3 py-2 rounded-lg flex items-center gap-2 hover:bg-slate-50 text-sm font-medium">
             <Printer size={16} /> Print
           </button>
           <button onClick={() => { resetProductForm(); setIsProductModalOpen(true); }} className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 shadow-lg shadow-blue-600/20 text-sm font-medium">
-            <Plus size={18} /> Tambah Produk
+            <Plus size={18} /> Tambah
           </button>
         </div>
       </div>

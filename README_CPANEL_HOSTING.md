@@ -18,7 +18,7 @@ Panduan ini menjelaskan cara meng-hosting aplikasi Cemilan KasirPOS menggunakan 
 3.  Buat database baru (contoh: `u12345_cemilan`).
 4.  Buat user database baru (contoh: `u12345_admin`) dan passwordnya.
 5.  **PENTING**: Berikan hak akses **ALL PRIVILEGES** user tersebut ke database yang baru dibuat.
-6.  Buka **phpMyAdmin**, pilih database tadi, lalu Import file `cemilankasirpos.sql` (atau file sql terbaru) yang ada di folder proyek ini.
+6.  Buka **phpMyAdmin**, pilih database tadi, lalu Import file `cemilankasirpos_php.sql` (atau file sql terbaru) yang ada di folder proyek ini.
 
 ## ⚙️ Langkah 2: Upload Backend (PHP)
 

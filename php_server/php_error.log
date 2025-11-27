@@ -1,7 +1,0 @@
-[2025-11-21 17:54:31] DB Connection Error: could not find driver
-[2025-11-21 23:37:33] DB Connection Error: could not find driver
-[2025-11-22 10:05:34] DB Connection Error: could not find driver
-[2025-11-22 10:37:11] DB Connection Error: could not find driver
-[2025-11-22 10:42:26] DB Connection Error: could not find driver
-[2025-11-22 14:20:33] DB Connection Error: could not find driver
-[2025-11-24 08:49:03] DB Connection Error: PDO MySQL driver is not installed. Please install php-mysql extension.

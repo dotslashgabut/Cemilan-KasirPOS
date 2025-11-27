@@ -3,7 +3,8 @@ import { useData } from '../hooks/useData';
 import { StorageService } from '../services/storage';
 import { TransactionType, UserRole, User } from '../types';
 import { formatIDR, exportToCSV } from '../utils';
-import { Download, Search, Filter, RotateCcw, X, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Download, Search, Filter, RotateCcw, X, ArrowUpDown, ArrowUp, ArrowDown, FileSpreadsheet } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 interface SoldItemsProps {
     currentUser: User | null;
@@ -246,6 +247,50 @@ export const SoldItems: React.FC<SoldItemsProps> = ({ currentUser }) => {
         exportToCSV('laporan-barang-terjual.csv', headers, rows);
     };
 
+    const handleExportExcel = () => {
+        const showHPP = currentUser?.role !== UserRole.CASHIER;
+        const data = soldItems.map(i => {
+            const d = new Date(i.date);
+            const item: any = {
+                'ID Transaksi': i.transactionId,
+                'Tanggal': d.toLocaleDateString('id-ID'),
+                'Waktu': d.toLocaleTimeString('id-ID'),
+                'Item': i.name,
+                'Qty': i.qty,
+                'Harga Jual': i.finalPrice,
+                'Kategori': i.selectedPriceType,
+                'Pembeli': i.customerName,
+                'Kasir': i.cashierName,
+                'Status': i.transactionType === TransactionType.RETURN ? 'RETUR' : i.isReturned ? 'Retur Sebagian' : 'Normal'
+            };
+            if (showHPP) {
+                item['HPP'] = i.hpp || 0;
+            }
+            return item;
+        });
+
+        const worksheet = XLSX.utils.json_to_sheet(data);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Barang Terjual");
+
+        // Auto-width
+        worksheet['!cols'] = [
+            { wch: 15 }, // ID
+            { wch: 12 }, // Tanggal
+            { wch: 10 }, // Waktu
+            { wch: 30 }, // Item
+            { wch: 8 },  // Qty
+            ...(showHPP ? [{ wch: 15 }] : []), // HPP
+            { wch: 15 }, // Harga Jual
+            { wch: 15 }, // Kategori
+            { wch: 20 }, // Pembeli
+            { wch: 15 }, // Kasir
+            { wch: 15 }  // Status
+        ];
+
+        XLSX.writeFile(workbook, `Laporan_Barang_Terjual_${new Date().toISOString().split('T')[0]}.xlsx`);
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col gap-4 border-b border-slate-200 pb-4">
@@ -255,8 +300,11 @@ export const SoldItems: React.FC<SoldItemsProps> = ({ currentUser }) => {
                         <button onClick={handlePrint} className="text-sm flex items-center gap-2 bg-white border border-slate-300 px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50">
                             <Download size={16} /> Print
                         </button>
+                        <button onClick={handleExportExcel} className="text-sm flex items-center gap-2 bg-green-50 border border-green-200 px-3 py-2 rounded-lg text-green-700 hover:bg-green-100">
+                            <FileSpreadsheet size={16} /> Excel
+                        </button>
                         <button onClick={handleExport} className="text-sm flex items-center gap-2 bg-white border border-slate-300 px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50">
-                            <Download size={16} /> Export CSV
+                            <Download size={16} /> CSV
                         </button>
                     </div>
                 </div>

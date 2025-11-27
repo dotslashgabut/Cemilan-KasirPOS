@@ -5,7 +5,8 @@ import { StorageService } from '../services/storage';
 import { Transaction, PaymentStatus, CashFlow, CashFlowType, Purchase, Supplier, PaymentMethod, CashFlow as CashFlowTypeInterface, StoreSettings, BankAccount, User, UserRole, TransactionType, PurchaseType } from '../types';
 import { formatIDR, formatDate, exportToCSV, generateId } from '../utils';
 import { generatePrintInvoice, generatePrintGoodsNote, generatePrintSuratJalan, generatePrintTransactionDetail, generatePrintPurchaseDetail } from '../utils/printHelpers';
-import { ArrowDownLeft, ArrowUpRight, Download, Plus, Printer, FileText, Filter, RotateCcw, X, Eye, ShoppingBag, Calendar, Clock, Search, ArrowUpDown, ArrowUp, ArrowDown, Trash2 } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, Download, Plus, Printer, FileText, Filter, RotateCcw, X, Eye, ShoppingBag, Calendar, Clock, Search, ArrowUpDown, ArrowUp, ArrowDown, Trash2, FileSpreadsheet } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 interface FinanceProps {
     currentUser: User | null;
@@ -212,106 +213,115 @@ export const Finance: React.FC<FinanceProps> = ({ currentUser, defaultTab = 'his
     };
 
     const submitReturnTx = async () => {
-        if (!detailTransaction) return;
-        const itemsToReturn = returnTxItems.filter(i => i.qty > 0);
-        if (itemsToReturn.length === 0) return;
+        try {
+            if (!detailTransaction) return;
+            const itemsToReturn = returnTxItems.filter(i => i.qty > 0);
+            if (itemsToReturn.length === 0) {
+                alert("Pilih setidaknya satu barang untuk diretur.");
+                return;
+            }
 
-        const totalReturnValue = itemsToReturn.reduce((sum, i) => sum + (i.qty * i.price), 0);
+            const totalReturnValue = itemsToReturn.reduce((sum, i) => sum + (i.qty * i.price), 0);
 
-        // 1. Hitung Hutang Saat Ini (Sisa Tagihan)
-        const currentDebt = detailTransaction.totalAmount - detailTransaction.amountPaid;
+            // 1. Hitung Hutang Saat Ini (Sisa Tagihan)
+            const currentDebt = detailTransaction.totalAmount - detailTransaction.amountPaid;
 
-        // 2. Tentukan Alokasi Nilai Retur
-        // Prioritas: Potong Hutang dulu, baru Refund Tunai
-        const cutDebtAmount = Math.min(totalReturnValue, currentDebt);
-        const cashRefundAmount = totalReturnValue - cutDebtAmount;
+            // 2. Tentukan Alokasi Nilai Retur
+            // Prioritas: Potong Hutang dulu, baru Refund Tunai
+            const cutDebtAmount = Math.min(totalReturnValue, currentDebt);
+            const cashRefundAmount = totalReturnValue - cutDebtAmount;
 
-        const now = new Date().toISOString();
+            const now = new Date().toISOString();
 
-        // 3. Update Transaksi Asal
-        // Always update isReturned status
-        let updatedOriginalTx = {
-            ...detailTransaction,
-            isReturned: true
-        };
-
-        // Jika ada potong hutang, update payment info
-        if (cutDebtAmount > 0) {
-            const newPaid = detailTransaction.amountPaid + cutDebtAmount;
-            const newStatus = newPaid >= detailTransaction.totalAmount ? PaymentStatus.PAID : PaymentStatus.PARTIAL;
-
-            const updatedHistory = [...(detailTransaction.paymentHistory || [])];
-            updatedHistory.push({
-                date: now,
-                amount: cutDebtAmount,
-                method: PaymentMethod.CASH, // Dianggap sebagai pembayaran via retur
-                note: 'Potong Utang (Retur Barang)'
-            });
-
-            updatedOriginalTx = {
-                ...updatedOriginalTx,
-                amountPaid: newPaid,
-                paymentStatus: newStatus,
-                paymentHistory: updatedHistory,
-                change: 0
+            // 3. Update Transaksi Asal
+            // Always update isReturned status
+            let updatedOriginalTx = {
+                ...detailTransaction,
+                isReturned: true
             };
-        }
 
-        await StorageService.updateTransaction(updatedOriginalTx);
+            // Jika ada potong hutang, update payment info
+            if (cutDebtAmount > 0) {
+                const newPaid = detailTransaction.amountPaid + cutDebtAmount;
+                const newStatus = newPaid >= detailTransaction.totalAmount ? PaymentStatus.PAID : PaymentStatus.PARTIAL;
 
-        // 4. Buat Transaksi Retur (Record Stock In & History)
-        const returnTx: Transaction = {
-            id: generateId(),
-            type: TransactionType.RETURN,
-            originalTransactionId: detailTransaction.id,
-            date: now,
-            items: itemsToReturn.map(i => {
-                const originalItem = detailTransaction.items.find(oi => oi.id === i.id);
-                return {
-                    ...originalItem!,
-                    qty: i.qty,
-                    finalPrice: i.price
+                const updatedHistory = [...(detailTransaction.paymentHistory || [])];
+                updatedHistory.push({
+                    date: now,
+                    amount: cutDebtAmount,
+                    method: PaymentMethod.CASH, // Dianggap sebagai pembayaran via retur
+                    note: 'Potong Utang (Retur Barang)'
+                });
+
+                updatedOriginalTx = {
+                    ...updatedOriginalTx,
+                    amountPaid: newPaid,
+                    paymentStatus: newStatus,
+                    paymentHistory: updatedHistory,
+                    change: 0
                 };
-            }),
-            totalAmount: -totalReturnValue, // Negative for return
-            amountPaid: -totalReturnValue, // Anggap lunas
-            change: 0,
-            paymentStatus: PaymentStatus.PAID,
-            paymentMethod: PaymentMethod.CASH,
-            paymentNote: `Retur dari #${detailTransaction.id.substring(0, 6)}` + (cutDebtAmount > 0 ? ` (Potong Utang: ${formatIDR(cutDebtAmount)})` : ''),
-            customerName: detailTransaction.customerName,
-            cashierId: currentUser?.id || 'SYSTEM',
-            cashierName: currentUser?.name || 'System',
-            skipCashFlow: cutDebtAmount > 0 // Skip backend auto-cashflow if we are cutting debt (complex case)
-        };
+            }
 
-        await StorageService.addTransaction(returnTx);
+            await StorageService.updateTransaction(updatedOriginalTx);
 
-        // 5. Record Cash Out (Hanya jika ada uang tunai yang dikembalikan)
-        // If we cut debt, we skipped backend auto-cashflow, so we must add it manually here if there is a cash refund
-        if (cutDebtAmount > 0 && cashRefundAmount > 0) {
-            await StorageService.addCashFlow({
-                id: '',
+            // 4. Buat Transaksi Retur (Record Stock In & History)
+            const returnTx: Transaction = {
+                id: generateId(),
+                type: TransactionType.RETURN,
+                originalTransactionId: detailTransaction.id,
                 date: now,
-                type: CashFlowType.OUT,
-                amount: cashRefundAmount,
-                category: 'Retur Penjualan',
-                description: `Refund Retur Transaksi #${detailTransaction.id.substring(0, 6)}`,
+                items: itemsToReturn.map(i => {
+                    const originalItem = detailTransaction.items.find(oi => oi.id === i.id);
+                    return {
+                        ...originalItem!,
+                        qty: i.qty,
+                        finalPrice: i.price
+                    };
+                }),
+                totalAmount: -totalReturnValue, // Negative for return
+                amountPaid: -totalReturnValue, // Anggap lunas
+                change: 0,
+                paymentStatus: PaymentStatus.PAID,
                 paymentMethod: PaymentMethod.CASH,
-                userId: currentUser?.id,
-                userName: currentUser?.name,
-                referenceId: returnTx.id // Link to Return Transaction ID
-            });
+                paymentNote: `Retur dari #${detailTransaction.id.substring(0, 6)}` + (cutDebtAmount > 0 ? ` (Potong Utang: ${formatIDR(cutDebtAmount)})` : ''),
+                ...(detailTransaction.customerId && { customerId: detailTransaction.customerId }), // Only include if exists
+                customerName: detailTransaction.customerName,
+                cashierId: currentUser?.id || 'SYSTEM',
+                cashierName: currentUser?.name || 'System',
+                skipCashFlow: cutDebtAmount > 0 // Skip backend auto-cashflow if we are cutting debt (complex case)
+            };
+
+            await StorageService.addTransaction(returnTx);
+
+            // 5. Record Cash Out (Hanya jika ada uang tunai yang dikembalikan)
+            // If we cut debt, we skipped backend auto-cashflow, so we must add it manually here if there is a cash refund
+            if (cutDebtAmount > 0 && cashRefundAmount > 0) {
+                await StorageService.addCashFlow({
+                    id: '',
+                    date: now,
+                    type: CashFlowType.OUT,
+                    amount: cashRefundAmount,
+                    category: 'Retur Penjualan',
+                    description: `Refund Retur Transaksi #${detailTransaction.id.substring(0, 6)}`,
+                    paymentMethod: PaymentMethod.CASH,
+                    userId: currentUser?.id,
+                    userName: currentUser?.name,
+                    referenceId: returnTx.id // Link to Return Transaction ID
+                });
+            }
+
+            setIsReturnTxModalOpen(false);
+            setDetailTransaction(null);
+
+            let message = 'Retur berhasil diproses.';
+            if (cutDebtAmount > 0) message += `\nDipotong dari hutang: ${formatIDR(cutDebtAmount)}`;
+            if (cashRefundAmount > 0) message += `\nDikembalikan tunai: ${formatIDR(cashRefundAmount)}`;
+
+            alert(message);
+        } catch (error) {
+            console.error('Error processing return:', error);
+            alert(`Gagal memproses retur: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
-
-        setIsReturnTxModalOpen(false);
-        setDetailTransaction(null);
-
-        let message = 'Retur berhasil diproses.';
-        if (cutDebtAmount > 0) message += `\nDipotong dari hutang: ${formatIDR(cutDebtAmount)}`;
-        if (cashRefundAmount > 0) message += `\nDikembalikan tunai: ${formatIDR(cashRefundAmount)}`;
-
-        alert(message);
     };
 
     const submitReturnPurchase = async () => {
@@ -370,6 +380,13 @@ export const Finance: React.FC<FinanceProps> = ({ currentUser, defaultTab = 'his
             bankName: selectedBank?.bankName,
             paymentHistory: []
         };
+
+        // Update Original Purchase Status
+        const updatedOriginalPurchase = {
+            ...detailPurchase,
+            isReturned: true
+        };
+        await StorageService.updatePurchase(updatedOriginalPurchase);
 
         await StorageService.addPurchase(returnPurchase);
 
@@ -812,7 +829,7 @@ export const Finance: React.FC<FinanceProps> = ({ currentUser, defaultTab = 'his
             type: cfType,
             amount,
             category: cfCategory, // Use selected category
-            description: `${cfDesc} (via ${cfPaymentMethod}${selectedBank ? ` - ${selectedBank.bankName}` : ''})`,
+            description: `${cfDesc} (via ${cfPaymentMethod}${selectedBank ? ` - ${selectedBank.bankName} ${selectedBank.accountNumber}` : ''})`,
             paymentMethod: cfPaymentMethod,
             bankId: cfBankId,
             bankName: selectedBank?.bankName,
@@ -824,6 +841,16 @@ export const Finance: React.FC<FinanceProps> = ({ currentUser, defaultTab = 'his
         setCfCategory(''); // Reset category
         setCfPaymentMethod(PaymentMethod.CASH);
         setCfBankId('');
+    };
+
+    const handleDeleteCashFlow = async (id: string) => {
+        if (!confirm("Hapus catatan arus kas ini?")) return;
+        try {
+            await StorageService.deleteCashFlow(id);
+        } catch (error) {
+            console.error("Failed to delete cashflow:", error);
+            alert("Gagal menghapus data. Pastikan Anda memiliki izin yang sesuai.");
+        }
     };
 
     // Profit Loss Calculation
@@ -916,6 +943,134 @@ export const Finance: React.FC<FinanceProps> = ({ currentUser, defaultTab = 'his
         }
 
         exportToCSV(filename, headers, rows);
+    };
+
+    const handleExportExcel = () => {
+        let data: any[] = [];
+        let sheetName = "";
+        let fileNamePrefix = "";
+        let cols: any[] = [];
+
+        if (activeTab === 'history') {
+            sheetName = "Riwayat Transaksi";
+            fileNamePrefix = "Laporan_Transaksi";
+            data = filteredTransactions.map(t => {
+                const itemsSummary = t.items.map(i => `${i.name} (${i.qty}x)`).join(', ');
+                return {
+                    'ID Transaksi': t.id,
+                    'Tanggal': new Date(t.date).toLocaleDateString('id-ID'),
+                    'Waktu': new Date(t.date).toLocaleTimeString('id-ID'),
+                    'Tipe': t.type === TransactionType.RETURN ? 'RETUR' : 'PENJUALAN',
+                    'Pelanggan': t.customerName,
+                    'Item': itemsSummary,
+                    'Total': t.totalAmount,
+                    'Dibayar': t.amountPaid,
+                    'Kembalian': t.change,
+                    'Status': t.paymentStatus,
+                    'Metode Bayar': t.paymentMethod,
+                    'Bank': t.bankName || '-',
+                    'Catatan': t.paymentNote || '-'
+                };
+            });
+            cols = [
+                { wch: 15 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 20 },
+                { wch: 50 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 },
+                { wch: 15 }, { wch: 15 }, { wch: 20 }
+            ];
+        } else if (activeTab === 'debt_customer') {
+            sheetName = "Piutang Pelanggan";
+            fileNamePrefix = "Laporan_Piutang_Pelanggan";
+            data = receivables.map(r => ({
+                'ID Transaksi': r.id,
+                'Tanggal': formatDate(r.date),
+                'Pelanggan': r.customerName,
+                'Total Tagihan': r.totalAmount,
+                'Sudah Dibayar': r.amountPaid,
+                'Sisa Piutang': r.totalAmount - r.amountPaid,
+                'Status': r.paymentStatus
+            }));
+            cols = [
+                { wch: 15 }, { wch: 15 }, { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }
+            ];
+        } else if (activeTab === 'purchase_history') {
+            sheetName = "Riwayat Pembelian";
+            fileNamePrefix = "Laporan_Pembelian";
+            data = filteredPurchases.map(p => {
+                const itemsSummary = p.items ? p.items.map(i => `${i.name} (${i.qty}x)`).join(', ') : '-';
+                return {
+                    'ID Pembelian': p.id,
+                    'Tanggal': new Date(p.date).toLocaleDateString('id-ID'),
+                    'Waktu': new Date(p.date).toLocaleTimeString('id-ID'),
+                    'Supplier': p.supplierName,
+                    'Keterangan': p.description,
+                    'Item': itemsSummary,
+                    'Total': p.totalAmount,
+                    'Dibayar': p.amountPaid,
+                    'Status': p.type === PurchaseType.RETURN ? 'RETUR' : p.paymentStatus,
+                    'Metode Bayar': p.paymentMethod,
+                    'Bank': p.bankName || '-'
+                };
+            });
+            cols = [
+                { wch: 15 }, { wch: 12 }, { wch: 10 }, { wch: 20 }, { wch: 30 },
+                { wch: 40 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }
+            ];
+        } else if (activeTab === 'debt_supplier') {
+            sheetName = "Utang Supplier";
+            fileNamePrefix = "Laporan_Utang_Supplier";
+            data = payables.map(p => ({
+                'ID Pembelian': p.id,
+                'Tanggal': formatDate(p.date),
+                'Supplier': p.supplierName,
+                'Keterangan': p.description,
+                'Total Tagihan': p.totalAmount,
+                'Sudah Dibayar': p.amountPaid,
+                'Sisa Utang': p.totalAmount - p.amountPaid,
+                'Status': p.paymentStatus
+            }));
+            cols = [
+                { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }
+            ];
+        } else if (activeTab === 'cashflow') {
+            sheetName = "Arus Kas";
+            fileNamePrefix = "Laporan_Arus_Kas";
+            data = filteredCashFlows.map(c => ({
+                'Tanggal': new Date(c.date).toLocaleDateString('id-ID'),
+                'Waktu': new Date(c.date).toLocaleTimeString('id-ID'),
+                'Tipe': c.type === CashFlowType.IN ? 'MASUK' : 'KELUAR',
+                'Kategori': c.category,
+                'Jumlah': c.amount,
+                'Keterangan': c.description,
+                'Metode': c.paymentMethod,
+                'Bank': c.bankName || '-'
+            }));
+            cols = [
+                { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 20 }, { wch: 15 }, { wch: 40 }, { wch: 15 }, { wch: 15 }
+            ];
+        } else if (activeTab === 'profit_loss') {
+            sheetName = "Laba Rugi";
+            fileNamePrefix = "Laporan_Laba_Rugi";
+            data = [
+                { 'Item': 'Pendapatan Penjualan (Omzet)', 'Nilai': plData.revenue },
+                { 'Item': 'Harga Pokok Penjualan (HPP)', 'Nilai': plData.cogs },
+                { 'Item': 'Laba Kotor', 'Nilai': plData.grossProfit },
+                { 'Item': 'Beban Operasional', 'Nilai': plData.expenses },
+                { 'Item': 'Laba Bersih', 'Nilai': plData.netProfit }
+            ];
+            cols = [{ wch: 30 }, { wch: 20 }];
+        } else {
+            return;
+        }
+
+        const worksheet = XLSX.utils.json_to_sheet(data);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+
+        if (cols.length > 0) {
+            worksheet['!cols'] = cols;
+        }
+
+        XLSX.writeFile(workbook, `${fileNamePrefix}_${new Date().toISOString().split('T')[0]}.xlsx`);
     };
 
     const handleCleanPrint = () => {
@@ -1120,8 +1275,11 @@ export const Finance: React.FC<FinanceProps> = ({ currentUser, defaultTab = 'his
                         ))}
                     </div>
                     <div className="flex gap-2">
+                        <button onClick={handleExportExcel} className="text-sm flex items-center gap-2 bg-green-50 border border-green-200 px-3 py-2 rounded-lg text-green-700 hover:bg-green-100">
+                            <FileSpreadsheet size={16} /> Excel
+                        </button>
                         <button onClick={handleExport} className="text-sm flex items-center gap-2 bg-white border border-slate-300 px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50">
-                            <Download size={16} /> Export
+                            <Download size={16} /> CSV
                         </button>
                         <button onClick={handleCleanPrint} className="text-sm flex items-center gap-2 bg-white border border-slate-300 px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50">
                             <Printer size={16} /> Print
@@ -1330,7 +1488,7 @@ export const Finance: React.FC<FinanceProps> = ({ currentUser, defaultTab = 'his
                                                     : 'bg-orange-100 text-orange-600'
                                             }`}>
                                             {t.type === TransactionType.RETURN ? 'RETUR' : t.paymentStatus === 'BELUM_LUNAS' ? 'BELUM LUNAS' : t.paymentStatus}
-                                            {t.isReturned && !t.type && ' (Ada Retur)'}
+                                            {t.isReturned && t.type !== TransactionType.RETURN ? ' (Ada Retur)' : ''}
                                         </span>
                                     </td>
                                     <td className="p-4 text-right">
@@ -1548,6 +1706,7 @@ export const Finance: React.FC<FinanceProps> = ({ currentUser, defaultTab = 'his
                                                     : 'bg-red-100 text-red-600'
                                             }`}>
                                             {p.type === PurchaseType.RETURN ? 'RETUR' : p.paymentStatus === 'BELUM_LUNAS' ? 'BELUM LUNAS' : p.paymentStatus}
+                                            {p.isReturned && p.type !== PurchaseType.RETURN ? ' (Ada Retur)' : ''}
                                         </span>
                                     </td>
                                 </tr>
@@ -1734,24 +1893,52 @@ export const Finance: React.FC<FinanceProps> = ({ currentUser, defaultTab = 'his
                         )}
                         <div className="divide-y divide-slate-100 max-h-[600px] overflow-y-auto">
                             {visibleCashFlows.map(cf => (
-                                <div key={cf.id} className="p-4 flex items-center justify-between">
+                                <div key={cf.id} className="p-4 flex items-center justify-between group hover:bg-slate-50 transition-colors">
                                     <div className="flex items-center gap-3">
                                         <div className={`p-2 rounded-full ${cf.type === CashFlowType.IN ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
                                             {cf.type === CashFlowType.IN ? <ArrowDownLeft size={18} /> : <ArrowUpRight size={18} />}
                                         </div>
                                         <div>
                                             <p className="font-medium text-slate-800">{cf.category}</p>
-                                            <p className="text-xs text-slate-500">{cf.description}</p>
+                                            <p className="text-xs text-slate-500">
+                                                {cf.description}
+                                                {(() => {
+                                                    if (cf.bankId) {
+                                                        const bank = banks.find(b => b.id === cf.bankId);
+                                                        if (bank && !cf.description.includes(bank.accountNumber)) {
+                                                            if (cf.description.toLowerCase().includes(bank.bankName.toLowerCase())) {
+                                                                return <span> - {bank.accountNumber}</span>;
+                                                            }
+                                                            return <span className="text-blue-600"> (via {bank.bankName} - {bank.accountNumber})</span>;
+                                                        }
+                                                    }
+                                                    return null;
+                                                })()}
+                                            </p>
                                         </div>
                                     </div>
-                                    <div className="text-right">
-                                        <p className={`font-bold ${cf.type === CashFlowType.IN ? 'text-green-600' : 'text-red-600'}`}>
-                                            {cf.type === CashFlowType.IN ? '+' : '-'}{formatIDR(cf.amount)}
-                                        </p>
-                                        <div className="flex flex-col">
-                                            <span className="text-xs text-slate-400">{formatDate(cf.date)}</span>
-                                            <span className="text-[10px] text-slate-300">{new Date(cf.date).toLocaleTimeString('id-ID')}</span>
+                                    <div className="flex items-center gap-4">
+                                        <div className="text-right">
+                                            <p className={`font-bold ${cf.type === CashFlowType.IN ? 'text-green-600' : 'text-red-600'}`}>
+                                                {cf.type === CashFlowType.IN ? '+' : '-'}{formatIDR(cf.amount)}
+                                            </p>
+                                            <div className="flex flex-col">
+                                                <span className="text-xs text-slate-400">{formatDate(cf.date)}</span>
+                                                <span className="text-[10px] text-slate-300">{new Date(cf.date).toLocaleTimeString('id-ID')}</span>
+                                            </div>
                                         </div>
+                                        {!cf.referenceId && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDeleteCashFlow(cf.id);
+                                                }}
+                                                className="text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 p-2"
+                                                title="Hapus Catatan Manual"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             ))}
@@ -1874,7 +2061,14 @@ export const Finance: React.FC<FinanceProps> = ({ currentUser, defaultTab = 'his
                                 <div>
                                     <span className="text-slate-500 block text-xs">Metode Awal</span>
                                     <span className="font-medium text-slate-900">{detailTransaction.paymentMethod}</span>
-                                    {detailTransaction.bankName && <span className="block text-xs text-blue-600">via {detailTransaction.bankName}</span>}
+                                    {(() => {
+                                        if (detailTransaction.bankId) {
+                                            const bank = banks.find(b => b.id === detailTransaction.bankId);
+                                            if (bank) return <span className="block text-xs text-blue-600">via {bank.bankName} {bank.accountNumber}</span>;
+                                        }
+                                        if (detailTransaction.bankName) return <span className="block text-xs text-blue-600">via {detailTransaction.bankName}</span>;
+                                        return null;
+                                    })()}
                                 </div>
                                 <div>
                                     <span className="text-slate-500 block text-xs">Status Retur</span>
@@ -1971,7 +2165,14 @@ export const Finance: React.FC<FinanceProps> = ({ currentUser, defaultTab = 'his
                                                 <span className="font-mono bg-slate-200 px-1 rounded text-[10px]">{new Date(ph.date).toLocaleTimeString('id-ID')}</span>
                                             </div>
                                             <span className="text-slate-700 block">{ph.note || 'Pembayaran'} ({ph.method})</span>
-                                            {ph.bankName && <span className="text-[10px] text-blue-600 italic">via {ph.bankName}</span>}
+                                            {(() => {
+                                                if (ph.bankId) {
+                                                    const bank = banks.find(b => b.id === ph.bankId);
+                                                    if (bank) return <span className="text-[10px] text-blue-600 italic">via {bank.bankName} {bank.accountNumber}</span>;
+                                                }
+                                                if (ph.bankName) return <span className="text-[10px] text-blue-600 italic">via {ph.bankName}</span>;
+                                                return null;
+                                            })()}
                                         </div>
                                         <span className="font-medium text-green-600">{formatIDR(ph.amount)}</span>
                                     </div>
@@ -2074,6 +2275,14 @@ export const Finance: React.FC<FinanceProps> = ({ currentUser, defaultTab = 'his
                                 <div>
                                     <span className="text-slate-500 block text-xs">Metode Awal</span>
                                     <span className="font-medium text-slate-900">{detailPurchase.paymentMethod}</span>
+                                    {(() => {
+                                        if (detailPurchase.bankId) {
+                                            const bank = banks.find(b => b.id === detailPurchase.bankId);
+                                            if (bank) return <span className="block text-xs text-blue-600">via {bank.bankName} {bank.accountNumber}</span>;
+                                        }
+                                        if (detailPurchase.bankName) return <span className="block text-xs text-blue-600">via {detailPurchase.bankName}</span>;
+                                        return null;
+                                    })()}
                                 </div>
                                 <div>
                                     <span className="text-slate-500 block text-xs">Status</span>
@@ -2133,12 +2342,21 @@ export const Finance: React.FC<FinanceProps> = ({ currentUser, defaultTab = 'his
                                     <h4 className="font-bold text-sm text-slate-800 mb-2">Info Pembelian Induk</h4>
                                     <div className="bg-blue-50 rounded-lg p-3 text-sm border border-blue-100">
                                         {(() => {
-                                            // Extract original ID from description if possible, or search by fuzzy match
-                                            // Assuming description format "Retur dari pembelian #ID..."
-                                            const originalIdMatch = detailPurchase.description.match(/#([a-zA-Z0-9-]+)/);
-                                            const originalId = originalIdMatch ? originalIdMatch[1] : null;
+                                            let originalTx = null;
 
-                                            const originalTx = originalId ? purchases.find(p => p.id === originalId || p.id.startsWith(originalId)) : null;
+                                            // 1. Try to find by originalPurchaseId (Best)
+                                            if (detailPurchase.originalPurchaseId) {
+                                                originalTx = purchases.find(p => p.id === detailPurchase.originalPurchaseId);
+                                            }
+
+                                            // 2. Fallback: Extract from description (Legacy)
+                                            if (!originalTx) {
+                                                const originalIdMatch = detailPurchase.description.match(/#([a-zA-Z0-9-]+)/);
+                                                const originalId = originalIdMatch ? originalIdMatch[1] : null;
+                                                if (originalId) {
+                                                    originalTx = purchases.find(p => p.id === originalId || p.id.startsWith(originalId));
+                                                }
+                                            }
 
                                             if (originalTx) {
                                                 return (
@@ -2174,7 +2392,14 @@ export const Finance: React.FC<FinanceProps> = ({ currentUser, defaultTab = 'his
                                                 <span>{new Date(ph.date).toLocaleDateString('id-ID')}</span>
                                             </div>
                                             <span className="text-slate-700 block">{ph.note || 'Pembayaran'} ({ph.method})</span>
-                                            {ph.bankName && <span className="text-[10px] text-blue-600 italic">via {ph.bankName}</span>}
+                                            {(() => {
+                                                if (ph.bankId) {
+                                                    const bank = banks.find(b => b.id === ph.bankId);
+                                                    if (bank) return <span className="text-[10px] text-blue-600 italic">via {bank.bankName} {bank.accountNumber}</span>;
+                                                }
+                                                if (ph.bankName) return <span className="text-[10px] text-blue-600 italic">via {ph.bankName}</span>;
+                                                return null;
+                                            })()}
                                         </div>
                                         <span className="font-medium text-green-600">{formatIDR(ph.amount)}</span>
                                     </div>

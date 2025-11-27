@@ -141,6 +141,7 @@ export interface Purchase {
   bankName?: string; // New: Snapshot of bank name
   paymentHistory?: PaymentHistoryItem[];
   originalPurchaseId?: string; // Link to parent purchase for returns
+  isReturned?: boolean; // Flag if purchase has been returned
 }
 
 export enum CashFlowType {
