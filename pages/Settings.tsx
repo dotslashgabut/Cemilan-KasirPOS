@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useData } from '../hooks/useData';
 import { StorageService } from '../services/storage';
 import { User, UserRole, StoreSettings, BankAccount, PrinterType } from '../types';
@@ -530,8 +531,8 @@ export const Settings: React.FC = () => {
                     </div>
 
                     {/* Bank Modal */}
-                    {isBankModalOpen && (
-                        <div className="fixed inset-0 top-0 left-0 right-0 bottom-0 bg-black/40 backdrop-blur-sm z-[99999] flex items-center justify-center p-4 overflow-y-auto">
+                    {isBankModalOpen && createPortal(
+                        <div className="fixed inset-0 top-0 left-0 right-0 bottom-0 bg-black/40 backdrop-blur-md z-[99999] flex items-center justify-center p-4 overflow-y-auto">
                             <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-xl">
                                 <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                                     <h3 className="font-bold text-slate-800">{editingBankId ? 'Edit Rekening' : 'Tambah Rekening'}</h3>
@@ -558,7 +559,8 @@ export const Settings: React.FC = () => {
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </div>,
+                        document.body
                     )}
                 </div>
             )
