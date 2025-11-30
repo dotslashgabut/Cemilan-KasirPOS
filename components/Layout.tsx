@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { LayoutDashboard, ShoppingCart, Package, Receipt, Wallet, Settings, LogOut, Users, Menu, ChevronLeft, Barcode, ShoppingBag, UserCheck, Truck } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Package, Receipt, Wallet, Settings, LogOut, Users, Menu, ChevronLeft, Barcode, ShoppingBag, UserCheck, Truck, ArrowRightLeft, Undo2 } from 'lucide-react';
 import { UserRole } from '../types';
 
 interface LayoutProps {
@@ -23,8 +23,8 @@ const NavItem = React.memo<{
     <button
       onClick={() => onNavigate(item.id)}
       className={`w-full flex items-center ${isSidebarOpen ? 'justify-start gap-3' : 'justify-center'} px-4 py-3 rounded-xl transition-all duration-150 ${isActive
-          ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50'
-          : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+        ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50'
+        : 'text-slate-400 hover:bg-slate-800 hover:text-white'
         }`}
       title={!isSidebarOpen ? item.label : ''}
     >
@@ -72,6 +72,8 @@ export const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate
     ];
 
     if (userRole === UserRole.OWNER || userRole === UserRole.SUPERADMIN) {
+      items.push({ id: 'transfer_history', label: 'Riwayat Transfer', icon: ArrowRightLeft });
+      items.push({ id: 'return_history', label: 'Riwayat Retur', icon: Undo2 });
       items.push({ id: 'barcode', label: 'Cetak Barcode', icon: Barcode });
       items.push({ id: 'settings', label: 'Pengaturan', icon: Settings });
     }

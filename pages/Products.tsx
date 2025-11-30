@@ -5,7 +5,7 @@ import { StorageService } from '../services/storage';
 import { Product, Category, UserRole } from '../types';
 import { formatIDR, exportToCSV, generateSKU } from '../utils';
 import * as XLSX from 'xlsx';
-import { Edit2, Trash2, Plus, X, Download, Upload, Tag, Barcode, Image as ImageIcon, Search, Printer, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, FileSpreadsheet } from 'lucide-react';
+import { Edit2, Trash2, Plus, X, Download, Upload, Tag, Barcode, Image as ImageIcon, Search, Printer, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, FileSpreadsheet, Package } from 'lucide-react';
 
 export const Products: React.FC = () => {
   const products = useData(() => StorageService.getProducts(), [], 'products') || [];
@@ -363,11 +363,14 @@ export const Products: React.FC = () => {
   }, [loadMoreRef.current, filteredProducts]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Daftar Produk</h2>
-          <p className="text-slate-500 text-sm">Kelola inventaris, harga modal (HPP) dan harga jual.</p>
+          <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+            <Package className="text-blue-600" />
+            Daftar Produk
+          </h2>
+          <p className="text-slate-500 text-sm mt-1">Kelola inventaris, harga modal (HPP) dan harga jual.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button onClick={() => setIsCategoryModalOpen(true)} className="bg-white border border-slate-300 text-slate-700 px-3 py-2 rounded-lg flex items-center gap-2 hover:bg-slate-50 text-sm font-medium">

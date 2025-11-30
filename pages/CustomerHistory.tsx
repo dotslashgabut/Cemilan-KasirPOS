@@ -5,7 +5,7 @@ import { StorageService } from '../services/storage';
 import { Transaction, PaymentStatus, Customer, UserRole, User, PaymentMethod, StoreSettings, TransactionType } from '../types';
 import { formatIDR, formatDate, exportToCSV } from '../utils';
 import { generatePrintTransactionDetail } from '../utils/printHelpers';
-import { Download, Search, Filter, RotateCcw, X, Eye, FileText, Printer, FileSpreadsheet } from 'lucide-react';
+import { Download, Search, Filter, RotateCcw, X, Eye, FileText, Printer, FileSpreadsheet, UserCheck } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 interface CustomerHistoryProps {
@@ -260,10 +260,16 @@ export const CustomerHistory: React.FC<CustomerHistoryProps> = ({ currentUser })
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 animate-fade-in">
             <div className="flex flex-col gap-4 border-b border-slate-200 pb-4">
                 <div className="flex flex-wrap justify-between items-center gap-4">
-                    <h1 className="text-2xl font-bold text-slate-800">Riwayat Pelanggan</h1>
+                    <div>
+                        <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                            <UserCheck className="text-blue-600" />
+                            Riwayat Pelanggan
+                        </h1>
+                        <p className="text-slate-500 text-sm mt-1">Lacak riwayat transaksi dan aktivitas pelanggan</p>
+                    </div>
                     <div className="flex gap-2">
                         <button onClick={handlePrint} className="text-sm flex items-center gap-2 bg-white border border-slate-300 px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50">
                             <Printer size={16} /> Print

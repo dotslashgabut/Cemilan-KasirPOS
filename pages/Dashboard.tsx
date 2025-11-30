@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend, AreaChart, Area } from 'recharts';
-import { Brain, TrendingUp, AlertCircle, Wallet, RefreshCw, Calendar, Package, User as UserIcon } from 'lucide-react';
+import { Brain, TrendingUp, AlertCircle, Wallet, RefreshCw, Calendar, Package, User as UserIcon, LayoutDashboard } from 'lucide-react';
 import { StorageService } from '../services/storage';
 import { getBusinessInsights } from '../services/geminiService';
 import { formatIDR } from '../utils';
@@ -282,11 +282,14 @@ export const Dashboard: React.FC = () => {
   const timeLabel = timeFilter === 'daily' ? 'Hari Ini' : (timeFilter === 'weekly' ? 'Minggu Ini' : (timeFilter === 'monthly' ? 'Bulan Ini' : 'Tahun Ini'));
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-slate-900">Dashboard</h2>
-          <p className="text-slate-500">Ringkasan performa bisnis Anda.</p>
+          <h2 className="text-3xl font-bold text-slate-900 flex items-center gap-2">
+            <LayoutDashboard className="text-blue-600" />
+            Dashboard
+          </h2>
+          <p className="text-slate-500 mt-1">Ringkasan performa bisnis Anda.</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
           <div className="bg-slate-100 p-1 rounded-lg flex gap-1">

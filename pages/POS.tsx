@@ -154,6 +154,9 @@ export const POS: React.FC = () => {
     // Validation
     if (paymentMethod === PaymentMethod.TEMPO && paid === 0) {
       paid = 0;
+    } else if (paymentMethod === PaymentMethod.TEMPO && paid > totalAmount) {
+      alert('Peringatan: Jumlah pembayaran tidak boleh melebihi total harga barang untuk metode pembayaran tempo!');
+      return;
     } else if (paymentMethod !== PaymentMethod.TEMPO && paid < totalAmount) {
       alert('Pembayaran kurang!');
       return;
@@ -222,7 +225,7 @@ export const POS: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row h-[calc(100vh-6rem)] gap-6">
+    <div className="flex flex-col lg:flex-row h-[calc(100vh-6rem)] gap-6 animate-fade-in">
       {/* Product Grid */}
       <div className="flex-1 flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="p-4 border-b border-slate-100 flex gap-4 bg-white z-10">
@@ -366,8 +369,38 @@ export const POS: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-2 bg-slate-50 rounded-lg border border-slate-200">
                     <button onClick={() => item.qty > 1 ? updateCartItem(idx, { qty: item.qty - 1 }) : removeFromCart(idx)} className="p-1 hover:bg-slate-200 rounded text-slate-500"><Minus size={14} /></button>
-                    <span className="text-sm font-bold w-6 text-center">{item.qty}</span>
-                    <button onClick={() => updateCartItem(idx, { qty: item.qty + 1 })} className="p-1 hover:bg-slate-200 rounded text-slate-500"><Plus size={14} /></button>
+                    <input
+                      type="text"
+                      className="text-sm font-bold w-12 text-center bg-transparent outline-none p-0"
+                      value={item.qty === 0 ? '' : item.qty}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^0-9]/g, '');
+                        if (val === '') {
+                          updateCartItem(idx, { qty: 0 });
+                          return;
+                        }
+                        let newQty = parseInt(val);
+                        if (newQty > item.stock) {
+                          alert('Jumlah melebihi stok, isi sesuai ketersediaan stok');
+                          newQty = item.stock;
+                        }
+                        updateCartItem(idx, { qty: newQty });
+                      }}
+                      onBlur={() => {
+                        if (item.qty === 0) updateCartItem(idx, { qty: 1 });
+                      }}
+                    />
+                    <button
+                      onClick={() => {
+                        if (item.qty < item.stock) {
+                          updateCartItem(idx, { qty: item.qty + 1 });
+                        }
+                      }}
+                      className={`p-1 rounded ${item.qty >= item.stock ? 'text-slate-300 cursor-not-allowed' : 'hover:bg-slate-200 text-slate-500'}`}
+                      disabled={item.qty >= item.stock}
+                    >
+                      <Plus size={14} />
+                    </button>
                   </div>
                   {/* Delete Item Button */}
                   <button

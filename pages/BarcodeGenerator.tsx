@@ -121,10 +121,13 @@ export const BarcodeGenerator: React.FC = () => {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 animate-fade-in">
             <div>
-                <h2 className="text-2xl font-bold text-slate-900">Cetak Barcode</h2>
-                <p className="text-slate-500 text-sm">Pilih produk untuk dicetak barcodenya.</p>
+                <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                    <Barcode className="text-purple-600" />
+                    Cetak Barcode
+                </h2>
+                <p className="text-slate-500 text-sm mt-1">Pilih produk untuk dicetak barcodenya.</p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -22,7 +22,7 @@
 
 - **Frontend**: React 19 dengan TypeScript
 - **Build Tool**: Vite
-- **Styling**: Tailwind CSS
+- **Styling**: Tailwind CSS (dengan animasi custom fade-in)
 - **Backend**: PHP Native
 - **Database**: MySQL
 - **Authentication**: JWT (JSON Web Tokens)
@@ -69,7 +69,8 @@ Aplikasi mendukung 3 level pengguna dengan akses berbeda:
 - **Tidak dapat** melihat HPP
 - **Tidak dapat** melihat data keuangan dari kasir lain
 - **Tidak dapat** mengubah harga atau stok produk
-- Hanya dapat melihat transaksi yang dibuat sendiri
+- **Tidak dapat** mengubah harga atau stok produk
+- Hanya dapat melihat transaksi, pembelian, dan arus kas yang dibuat sendiri (Data Isolation)
 
 ### 3. Fitur Keamanan Tambahan
 
@@ -159,6 +160,9 @@ OWNER:
 
 - **Tambah Produk**: Tambah produk ke keranjang dengan qty
 - **Edit Qty**: Ubah jumlah item langsung dari keranjang
+- **Validasi Stok**:
+  - Tombol plus (+) otomatis berhenti saat mencapai batas stok
+  - Input manual divalidasi (maks 4 digit), menampilkan peringatan jika melebihi stok
 - **Hapus Item**: Hapus item dari keranjang
 - **Clear Cart**: Kosongkan seluruh keranjang
 - **Real-time Total**: Hitung total otomatis saat ada perubahan
@@ -305,12 +309,14 @@ Setiap produk mendukung 4 tingkatan harga:
 - Nama kasir
 - Status retur: "(Ada Retur)" jika ada
 - Catatan retur: Alasan/kondisi barang saat retur
+- Keterangan: Deskripsi tambahan transaksi
 
 #### Fitur
 
 - **Detail Transaksi**: Lihat detail lengkap per transaksi
 - **Payment History**: Track cicilan/pembayaran tempo
 - **Return Transaction**: Link ke transaksi retur jika ada
+- **Refund Method**: Pilihan metode pengembalian dana saat retur
 - **Return Notes**: Lihat catatan alasan retur di detail
 - **Filter by Date**: Filter transaksi berdasarkan periode
 - **Filter by Cashier**: Filter berdasarkan kasir (untuk CASHIER role)
@@ -433,6 +439,7 @@ Setiap produk mendukung 4 tingkatan harga:
 - **Filter by Type**: Filter masuk/keluar
 - **Filter by Category**: Filter by kategori
 - **Filter by User**: Filter by user yang input (untuk CASHIER)
+- **Improved Filter**: Filter "Transfer" mencakup pembayaran parsial dari transaksi tempo
 - **Export & Print**: Ekspor data cash flow
 
 ### 6. Laporan Laba Rugi (Profit & Loss)
@@ -511,6 +518,7 @@ Setiap produk mendukung 4 tingkatan harga:
 - **Purchase Returns**: Lihat semua retur pembelian
 - **Link Navigation**: Klik untuk lihat transaksi/pembelian induk
 - **Detail Items**: Lihat detail item yang diretur
+- **Search Item**: Pencarian pada kolom 'Barang Diretur'
 - **View Notes**: Lihat catatan alasan retur di detail riwayat
 
 ### 9. Cicilan/Installments Tracking
@@ -540,6 +548,26 @@ Setiap produk mendukung 4 tingkatan harga:
 - **Due Payments**: Pembayaran yang jatuh tempo
 - **Filter by Customer/Supplier**: Filter by pihak
 - **Filter by Date**: Filter by periode
+
+### 10. Riwayat Transfer (Transfer History)
+
+**Pencatatan riwayat transfer masuk dan keluar**
+
+#### Data yang Ditampilkan
+
+- ID/Ref Transaksi
+- Tanggal
+- Tipe (Masuk/Keluar)
+- Bank/E-Wallet (Nama & Nomor Rekening)
+- Jumlah
+- Keterangan
+
+#### Fitur
+
+- **Search**: Cari berdasarkan ID atau keterangan
+- **Filter Date**: Filter berdasarkan periode tanggal
+- **Export**: Dukungan ekspor ke CSV, Excel, dan Print
+- **Bank Detail**: Menampilkan detail akun bank (Nama & No. Rek)
 
 ---
 
@@ -588,6 +616,7 @@ Setiap produk mendukung 4 tingkatan harga:
 - Status pembayaran
 - Transaction details
 - Return history (jika ada)
+- Return notes (catatan retur) pada detail modal
 
 #### Fitur
 
@@ -630,6 +659,7 @@ Setiap produk mendukung 4 tingkatan harga:
 - Status pembayaran
 - Purchase details
 - Return history (jika ada)
+- Return notes (catatan retur) pada detail modal
 
 #### Fitur
 
@@ -836,6 +866,8 @@ Toggle show/hide untuk:
 - **Mobile Friendly**: UI responsive untuk tablet/mobile
 - **Touch Optimized**: Tombol besar untuk touch screen
 - **Adaptive Layout**: Layout menyesuaikan ukuran layar
+- **Page Transitions**: Animasi fade-in yang halus saat perpindahan halaman
+- **Page Titles**: Deskripsi dan ikon pada judul halaman untuk konteks yang lebih baik
 
 ### 3. Data Export & Import
 
@@ -862,6 +894,7 @@ Toggle show/hide untuk:
 - **Cash Flow**: Hanya yang diinput sendiri
 - **Piutang**: Dari transaksi sendiri
 - **Utang**: Dari pembelian sendiri
+- **Laporan**: Laporan keuangan dibatasi hanya untuk data user tersebut
 
 #### Yang Tetap Visible:
 

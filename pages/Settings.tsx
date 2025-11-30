@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useData } from '../hooks/useData';
 import { StorageService } from '../services/storage';
 import { User, UserRole, StoreSettings, BankAccount, PrinterType } from '../types';
-import { Trash2, Plus, User as UserIcon, Shield, ShieldAlert, Edit2, Save, X, Store, Upload, CreditCard, Printer, AlertTriangle, Download, FileSpreadsheet } from 'lucide-react';
+import { Trash2, Plus, User as UserIcon, Shield, ShieldAlert, Edit2, Save, X, Store, Upload, CreditCard, Printer, AlertTriangle, Download, FileSpreadsheet, Settings as SettingsIcon } from 'lucide-react';
 import { exportToCSV } from '../utils';
 import * as XLSX from 'xlsx';
 
@@ -349,10 +349,13 @@ export const Settings: React.FC = () => {
 
 
     return (
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-5xl mx-auto animate-fade-in">
             <div className="mb-8">
-                <h2 className="text-2xl font-bold text-slate-900">Pengaturan</h2>
-                <p className="text-slate-500">Kelola profil toko, metode pembayaran, dan akses pengguna.</p>
+                <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                    <SettingsIcon className="text-slate-600" />
+                    Pengaturan
+                </h2>
+                <p className="text-slate-500 mt-1">Kelola profil toko, metode pembayaran, dan akses pengguna.</p>
             </div>
 
             <div className="flex gap-4 mb-6 border-b border-slate-200 overflow-x-auto">

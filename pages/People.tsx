@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useData } from '../hooks/useData';
 import { StorageService } from '../services/storage';
 import { Customer, Supplier, PriceType } from '../types';
-import { Plus, Edit2, Trash2, Phone, MapPin, Search, User, Truck, Download, Printer, Upload, X, FileSpreadsheet } from 'lucide-react';
+import { Plus, Edit2, Trash2, Phone, MapPin, Search, User, Truck, Download, Printer, Upload, X, FileSpreadsheet, Users } from 'lucide-react';
 import { exportToCSV } from '../utils';
 import * as XLSX from 'xlsx';
 
@@ -213,10 +213,13 @@ export const People: React.FC = () => {
     }, [loadMoreRef.current, filteredList]);
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 animate-fade-in">
             <div>
-                <h2 className="text-2xl font-bold text-slate-900">Daftar Kontak</h2>
-                <p className="text-slate-500">Kelola data pelanggan dan supplier.</p>
+                <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                    <Users className="text-blue-600" />
+                    Daftar Kontak
+                </h2>
+                <p className="text-slate-500 mt-1">Kelola data pelanggan dan supplier.</p>
             </div>
 
             <div className="flex flex-col md:flex-row justify-between gap-4">
@@ -368,7 +371,7 @@ export const People: React.FC = () => {
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Alamat</label>
                                 <textarea
                                     className="w-full border border-slate-300 p-2.5 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                    rows={3}
+                                    rows={2}
                                     value={formData.address}
                                     onChange={e => setFormData({ ...formData, address: e.target.value })}
                                 />

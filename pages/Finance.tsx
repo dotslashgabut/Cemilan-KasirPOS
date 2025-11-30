@@ -39,6 +39,7 @@ export const Finance: React.FC<FinanceProps> = ({ currentUser, defaultTab = 'his
     const [endDate, setEndDate] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [categoryFilter, setCategoryFilter] = useState(''); // Filter category for cashflow
+    const [paymentMethodFilter, setPaymentMethodFilter] = useState(''); // Filter payment method for cashflow
 
     // Sort State
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
@@ -118,6 +119,8 @@ export const Finance: React.FC<FinanceProps> = ({ currentUser, defaultTab = 'his
     const [returnPurchaseManualAmount, setReturnPurchaseManualAmount] = useState('');
     const [returnPurchaseMode, setReturnPurchaseMode] = useState<'items' | 'manual'>('items');
     const [returnTxNote, setReturnTxNote] = useState('');
+    const [returnTxMethod, setReturnTxMethod] = useState<PaymentMethod>(PaymentMethod.CASH);
+    const [returnTxBankId, setReturnTxBankId] = useState('');
     const [returnPurchaseNote, setReturnPurchaseNote] = useState('');
 
     useEffect(() => {
@@ -167,6 +170,8 @@ export const Finance: React.FC<FinanceProps> = ({ currentUser, defaultTab = 'his
         }
 
         setReturnTxItems(itemsWithRemainingQty);
+        setReturnTxMethod(PaymentMethod.CASH);
+        setReturnTxBankId('');
         setIsReturnTxModalOpen(true);
     };
 
@@ -217,6 +222,12 @@ export const Finance: React.FC<FinanceProps> = ({ currentUser, defaultTab = 'his
     const submitReturnTx = async () => {
         try {
             if (!detailTransaction) return;
+
+            if (returnTxMethod === PaymentMethod.TRANSFER && !returnTxBankId) {
+                alert("Pilih rekening bank untuk pengembalian dana via transfer.");
+                return;
+            }
+
             const itemsToReturn = returnTxItems.filter(i => i.qty > 0);
             if (itemsToReturn.length === 0) {
                 alert("Pilih setidaknya satu barang untuk diretur.");
@@ -284,7 +295,9 @@ export const Finance: React.FC<FinanceProps> = ({ currentUser, defaultTab = 'his
                 amountPaid: -totalReturnValue, // Anggap lunas
                 change: 0,
                 paymentStatus: PaymentStatus.PAID,
-                paymentMethod: PaymentMethod.CASH,
+                paymentMethod: returnTxMethod,
+                bankId: returnTxMethod === PaymentMethod.TRANSFER ? returnTxBankId : undefined,
+                bankName: returnTxMethod === PaymentMethod.TRANSFER ? banks.find(b => b.id === returnTxBankId)?.bankName : undefined,
                 paymentNote: `Retur dari #${detailTransaction.id.substring(0, 6)}` + (cutDebtAmount > 0 ? ` (Potong Utang: ${formatIDR(cutDebtAmount)})` : ''),
                 returnNote: returnTxNote,
                 ...(detailTransaction.customerId && { customerId: detailTransaction.customerId }), // Only include if exists
@@ -305,8 +318,10 @@ export const Finance: React.FC<FinanceProps> = ({ currentUser, defaultTab = 'his
                     type: CashFlowType.OUT,
                     amount: cashRefundAmount,
                     category: 'Retur Penjualan',
-                    description: `Refund Retur Transaksi #${detailTransaction.id.substring(0, 6)}`,
-                    paymentMethod: PaymentMethod.CASH,
+                    description: `Refund Retur Transaksi #${detailTransaction.id.substring(0, 6)}` + (returnTxMethod === PaymentMethod.TRANSFER ? ` (via ${banks.find(b => b.id === returnTxBankId)?.bankName})` : ''),
+                    paymentMethod: returnTxMethod,
+                    bankId: returnTxMethod === PaymentMethod.TRANSFER ? returnTxBankId : undefined,
+                    bankName: returnTxMethod === PaymentMethod.TRANSFER ? banks.find(b => b.id === returnTxBankId)?.bankName : undefined,
                     userId: currentUser?.id,
                     userName: currentUser?.name,
                     referenceId: returnTx.id // Link to Return Transaction ID
@@ -453,6 +468,11 @@ export const Finance: React.FC<FinanceProps> = ({ currentUser, defaultTab = 'his
         return items.filter(cf => cf.category === categoryFilter);
     };
 
+    const applyPaymentMethodFilter = (items: CashFlow[]) => {
+        if (!paymentMethodFilter) return items;
+        return items.filter(cf => cf.paymentMethod === paymentMethodFilter);
+    };
+
     // Cashier Filter - Only show data created by the cashier
     const applyCashierFilter = (items: any[], type: 'transaction' | 'purchase' | 'cashflow') => {
         if (!currentUser || currentUser.role !== UserRole.CASHIER) return items;
@@ -544,7 +564,7 @@ export const Finance: React.FC<FinanceProps> = ({ currentUser, defaultTab = 'his
 
     const filteredTransactions = useMemo(() => sortItems(applySearch(applyDateFilter(applyCashierFilter(transactions, 'transaction')), 'transaction')), [transactions, searchQuery, startDate, endDate, sortConfig, currentUser]);
     const filteredPurchases = useMemo(() => sortItems(applySearch(applyDateFilter(applyCashierFilter(purchases, 'purchase')), 'purchase')), [purchases, searchQuery, startDate, endDate, sortConfig, currentUser]);
-    const filteredCashFlows = useMemo(() => sortItems(applySearch(applyCategoryFilter(applyDateFilter(applyCashierFilter(cashFlows, 'cashflow'))), 'cashflow')), [cashFlows, searchQuery, startDate, endDate, categoryFilter, sortConfig, currentUser]);
+    const filteredCashFlows = useMemo(() => sortItems(applySearch(applyPaymentMethodFilter(applyCategoryFilter(applyDateFilter(applyCashierFilter(cashFlows, 'cashflow')))), 'cashflow')), [cashFlows, searchQuery, startDate, endDate, categoryFilter, paymentMethodFilter, sortConfig, currentUser]);
 
     const visibleTransactions = useMemo(() => filteredTransactions.slice(0, visibleCount), [filteredTransactions, visibleCount]);
     const visiblePurchases = useMemo(() => filteredPurchases.slice(0, visibleCount), [filteredPurchases, visibleCount]);
@@ -910,10 +930,14 @@ export const Finance: React.FC<FinanceProps> = ({ currentUser, defaultTab = 'his
         let filename = 'export.csv';
 
         if (activeTab === 'history') {
-            headers = ['ID', 'Tanggal', 'Waktu', 'Pelanggan', 'Kasir', 'Total', 'Dibayar', 'Status', 'Metode'];
+            headers = ['ID', 'Tanggal', 'Waktu', 'Pelanggan', 'Keterangan', 'Kasir', 'Total', 'Dibayar', 'Status', 'Metode'];
             rows = filteredTransactions.map(t => {
                 const d = new Date(t.date);
-                return [t.id, d.toLocaleDateString('id-ID'), d.toLocaleTimeString('id-ID'), t.customerName, t.cashierName, t.totalAmount, t.amountPaid, t.paymentStatus, t.paymentMethod]
+                let status = t.type === TransactionType.RETURN ? 'RETUR' : (t.paymentStatus === 'BELUM_LUNAS' ? 'BELUM LUNAS' : t.paymentStatus);
+                if (t.isReturned && t.type !== TransactionType.RETURN) {
+                    status += ' (Ada Retur)';
+                }
+                return [t.id, d.toLocaleDateString('id-ID'), d.toLocaleTimeString('id-ID'), t.customerName, t.paymentNote || '-', t.cashierName, t.totalAmount, t.amountPaid, status, t.paymentMethod]
             });
             filename = 'laporan-transaksi.csv';
         } else if (activeTab === 'debt_customer') {
@@ -924,7 +948,10 @@ export const Finance: React.FC<FinanceProps> = ({ currentUser, defaultTab = 'his
             headers = ['ID', 'Tanggal', 'Waktu', 'Supplier', 'Keterangan', 'Total', 'Dibayar', 'Status'];
             rows = filteredPurchases.map(p => {
                 const d = new Date(p.date);
-                const status = p.type === PurchaseType.RETURN ? 'RETUR' : p.paymentStatus;
+                let status = p.type === PurchaseType.RETURN ? 'RETUR' : (p.paymentStatus === 'BELUM_LUNAS' ? 'BELUM LUNAS' : p.paymentStatus);
+                if (p.isReturned && p.type !== PurchaseType.RETURN) {
+                    status += ' (Ada Retur)';
+                }
                 return [p.id, d.toLocaleDateString('id-ID'), d.toLocaleTimeString('id-ID'), p.supplierName, p.description, p.totalAmount, p.amountPaid, status]
             });
             filename = 'laporan-pembelian.csv';
@@ -962,6 +989,10 @@ export const Finance: React.FC<FinanceProps> = ({ currentUser, defaultTab = 'his
             fileNamePrefix = "Laporan_Transaksi";
             data = filteredTransactions.map(t => {
                 const itemsSummary = t.items.map(i => `${i.name} (${i.qty}x)`).join(', ');
+                let status = t.type === TransactionType.RETURN ? 'RETUR' : (t.paymentStatus === 'BELUM_LUNAS' ? 'BELUM LUNAS' : t.paymentStatus);
+                if (t.isReturned && t.type !== TransactionType.RETURN) {
+                    status += ' (Ada Retur)';
+                }
                 return {
                     'ID Transaksi': t.id,
                     'Tanggal': new Date(t.date).toLocaleDateString('id-ID'),
@@ -972,10 +1003,10 @@ export const Finance: React.FC<FinanceProps> = ({ currentUser, defaultTab = 'his
                     'Total': t.totalAmount,
                     'Dibayar': t.amountPaid,
                     'Kembalian': t.change,
-                    'Status': t.paymentStatus,
+                    'Status': status,
                     'Metode Bayar': t.paymentMethod,
                     'Bank': t.bankName || '-',
-                    'Catatan': t.paymentNote || '-'
+                    'Keterangan': t.paymentNote || '-'
                 };
             });
             cols = [
@@ -1003,6 +1034,10 @@ export const Finance: React.FC<FinanceProps> = ({ currentUser, defaultTab = 'his
             fileNamePrefix = "Laporan_Pembelian";
             data = filteredPurchases.map(p => {
                 const itemsSummary = p.items ? p.items.map(i => `${i.name} (${i.qty}x)`).join(', ') : '-';
+                let status = p.type === PurchaseType.RETURN ? 'RETUR' : (p.paymentStatus === 'BELUM_LUNAS' ? 'BELUM LUNAS' : p.paymentStatus);
+                if (p.isReturned && p.type !== PurchaseType.RETURN) {
+                    status += ' (Ada Retur)';
+                }
                 return {
                     'ID Pembelian': p.id,
                     'Tanggal': new Date(p.date).toLocaleDateString('id-ID'),
@@ -1012,7 +1047,7 @@ export const Finance: React.FC<FinanceProps> = ({ currentUser, defaultTab = 'his
                     'Item': itemsSummary,
                     'Total': p.totalAmount,
                     'Dibayar': p.amountPaid,
-                    'Status': p.type === PurchaseType.RETURN ? 'RETUR' : p.paymentStatus,
+                    'Status': status,
                     'Metode Bayar': p.paymentMethod,
                     'Bank': p.bankName || '-'
                 };
@@ -1088,17 +1123,24 @@ export const Finance: React.FC<FinanceProps> = ({ currentUser, defaultTab = 'his
 
         if (activeTab === 'history') {
             title = 'Laporan Transaksi Penjualan';
-            const rows = filteredTransactions.map(t => `
+            const rows = filteredTransactions.map(t => {
+                let status = t.type === TransactionType.RETURN ? 'RETUR' : (t.paymentStatus === 'BELUM_LUNAS' ? 'BELUM LUNAS' : t.paymentStatus);
+                if (t.isReturned && t.type !== TransactionType.RETURN) {
+                    status += ' (Ada Retur)';
+                }
+                return `
               <tr>
                   <td>${t.id.substring(0, 8)}</td>
                   <td>${formatDate(t.date)}</td>
                   <td>${t.customerName}</td>
+                  <td>${t.paymentNote || '-'}</td>
                   <td>${t.cashierName}</td>
                   <td style="text-align:right">${formatIDR(t.totalAmount)}</td>
-                  <td>${t.paymentStatus}</td>
+                  <td>${status}</td>
               </tr>
-          `).join('');
-            content = `<thead><tr><th>ID</th><th>Tanggal & Waktu</th><th>Pelanggan</th><th>Kasir</th><th>Total</th><th>Status</th></tr></thead><tbody>${rows}</tbody>`;
+          `;
+            }).join('');
+            content = `<thead><tr><th>ID</th><th>Tanggal & Waktu</th><th>Pelanggan</th><th>Keterangan</th><th>Kasir</th><th>Total</th><th>Status</th></tr></thead><tbody>${rows}</tbody>`;
         } else if (activeTab === 'debt_customer') {
             title = 'Laporan Piutang Pelanggan';
             const rows = receivables.map(r => `
@@ -1114,16 +1156,22 @@ export const Finance: React.FC<FinanceProps> = ({ currentUser, defaultTab = 'his
             content = `<thead><tr><th>ID</th><th>Tanggal</th><th>Pelanggan</th><th>Total</th><th>Dibayar</th><th>Sisa Utang</th></tr></thead><tbody>${rows}</tbody>`;
         } else if (activeTab === 'purchase_history') {
             title = 'Laporan Pembelian Stok';
-            const rows = filteredPurchases.map(p => `
+            const rows = filteredPurchases.map(p => {
+                let status = p.type === PurchaseType.RETURN ? 'RETUR' : (p.paymentStatus === 'BELUM_LUNAS' ? 'BELUM LUNAS' : p.paymentStatus);
+                if (p.isReturned && p.type !== PurchaseType.RETURN) {
+                    status += ' (Ada Retur)';
+                }
+                return `
               <tr>
                   <td>${p.id.substring(0, 8)}</td>
                   <td>${formatDate(p.date)}</td>
                   <td>${p.supplierName}</td>
                   <td>${p.description}</td>
                   <td style="text-align:right">${formatIDR(p.totalAmount)}</td>
-                  <td>${p.type === PurchaseType.RETURN ? 'RETUR' : p.paymentStatus}</td>
+                  <td>${status}</td>
               </tr>
-          `).join('');
+          `;
+            }).join('');
             content = `<thead><tr><th>ID</th><th>Tanggal & Waktu</th><th>Supplier</th><th>Keterangan</th><th>Total</th><th>Status</th></tr></thead><tbody>${rows}</tbody>`;
         } else if (activeTab === 'debt_supplier') {
             title = 'Laporan Utang Supplier';
@@ -1257,7 +1305,7 @@ export const Finance: React.FC<FinanceProps> = ({ currentUser, defaultTab = 'his
     const numericInput = (val: string) => val.replace(/[^0-9]/g, '');
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 animate-fade-in">
             <div className="flex flex-col gap-4 border-b border-slate-200 pb-4">
                 {/* Top Controls */}
                 <div className="flex flex-wrap justify-between items-center gap-4">
@@ -1337,6 +1385,23 @@ export const Finance: React.FC<FinanceProps> = ({ currentUser, defaultTab = 'his
                                 {Array.from(new Set(cashFlows.map(cf => cf.category))).sort().map(cat => (
                                     <option key={cat} value={cat}>{cat}</option>
                                 ))}
+                            </select>
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                                <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
+                        </div>
+
+                        <div className="relative w-full max-w-xs">
+                            <select
+                                className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all text-sm text-slate-700 pr-10 appearance-none cursor-pointer"
+                                value={paymentMethodFilter}
+                                onChange={e => setPaymentMethodFilter(e.target.value)}
+                            >
+                                <option value="">Semua Metode</option>
+                                <option value={PaymentMethod.CASH}>Tunai</option>
+                                <option value={PaymentMethod.TRANSFER}>Transfer</option>
                             </select>
                             <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                                 <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1467,6 +1532,7 @@ export const Finance: React.FC<FinanceProps> = ({ currentUser, defaultTab = 'his
                                 <th className="p-4 font-medium cursor-pointer hover:bg-slate-100" onClick={() => handleSort('id')}>ID <SortIcon column="id" /></th>
                                 <th className="p-4 font-medium cursor-pointer hover:bg-slate-100" onClick={() => handleSort('date')}>Waktu <SortIcon column="date" /></th>
                                 <th className="p-4 font-medium cursor-pointer hover:bg-slate-100" onClick={() => handleSort('customerName')}>Pelanggan <SortIcon column="customerName" /></th>
+                                <th className="p-4 font-medium cursor-pointer hover:bg-slate-100" onClick={() => handleSort('paymentNote')}>Keterangan <SortIcon column="paymentNote" /></th>
                                 <th className="p-4 font-medium cursor-pointer hover:bg-slate-100" onClick={() => handleSort('totalAmount')}>Total <SortIcon column="totalAmount" /></th>
                                 <th className="p-4 font-medium cursor-pointer hover:bg-slate-100" onClick={() => handleSort('paymentStatus')}>Status <SortIcon column="paymentStatus" /></th>
                                 <th className="p-4 font-medium text-right">Aksi</th>
@@ -1483,6 +1549,7 @@ export const Finance: React.FC<FinanceProps> = ({ currentUser, defaultTab = 'his
                                         </div>
                                     </td>
                                     <td className="p-4 font-medium text-slate-800">{t.customerName}</td>
+                                    <td className="p-4 text-slate-600">{t.paymentNote || '-'}</td>
                                     <td className="p-4 text-slate-800">{formatIDR(t.totalAmount)}</td>
                                     <td className="p-4">
                                         <span className={`px-2 py-1 rounded text-xs font-bold ${t.type === TransactionType.RETURN
@@ -2746,6 +2813,39 @@ export const Finance: React.FC<FinanceProps> = ({ currentUser, defaultTab = 'his
                                     value={returnTxNote}
                                     onChange={e => setReturnTxNote(e.target.value)}
                                 />
+                            </div>
+                            {/* Payment Method Selection */}
+                            <div className="mt-6 pt-4 border-t border-slate-100">
+                                <label className="block text-sm font-medium text-slate-700 mb-2">Metode Pengembalian Dana</label>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <select
+                                            className="w-full border border-slate-300 p-2 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                                            value={returnTxMethod}
+                                            onChange={e => {
+                                                setReturnTxMethod(e.target.value as PaymentMethod);
+                                                setReturnTxBankId('');
+                                            }}
+                                        >
+                                            <option value={PaymentMethod.CASH}>Tunai</option>
+                                            <option value={PaymentMethod.TRANSFER}>Transfer</option>
+                                        </select>
+                                    </div>
+                                    {returnTxMethod === PaymentMethod.TRANSFER && (
+                                        <div>
+                                            <select
+                                                className="w-full border border-slate-300 p-2 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                                                value={returnTxBankId}
+                                                onChange={e => setReturnTxBankId(e.target.value)}
+                                            >
+                                                <option value="">-- Pilih Bank --</option>
+                                                {banks.sort((a, b) => a.bankName.localeCompare(b.bankName)).map(b => (
+                                                    <option key={b.id} value={b.id}>{b.bankName} - {b.accountNumber}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                             <div className="mt-6 p-4 bg-red-50 rounded-xl flex justify-between items-center">
                                 <span className="text-red-800 font-medium">Total Refund</span>

@@ -15,6 +15,8 @@ const BarcodeGenerator = React.lazy(() => import('./pages/BarcodeGenerator').the
 const SoldItems = React.lazy(() => import('./pages/SoldItems').then(module => ({ default: module.SoldItems })));
 const CustomerHistory = React.lazy(() => import('./pages/CustomerHistory').then(module => ({ default: module.CustomerHistory })));
 const SupplierHistory = React.lazy(() => import('./pages/SupplierHistory').then(module => ({ default: module.SupplierHistory })));
+const TransferHistory = React.lazy(() => import('./pages/TransferHistory').then(module => ({ default: module.TransferHistory })));
+const ReturnHistory = React.lazy(() => import('./pages/ReturnHistory').then(module => ({ default: module.ReturnHistory })));
 
 import { UserRole, User } from './types';
 import { Lock, User as UserIcon, Eye, EyeOff } from 'lucide-react';
@@ -172,6 +174,8 @@ const App: React.FC = () => {
          case 'finance': return <Finance currentUser={currentUser} defaultTab="cashflow" />;
          case 'customer_history': return <CustomerHistory currentUser={currentUser} />;
          case 'supplier_history': return <SupplierHistory currentUser={currentUser} />;
+         case 'transfer_history': return <TransferHistory currentUser={currentUser} />;
+         case 'return_history': return <ReturnHistory currentUser={currentUser} />;
          case 'barcode': return <BarcodeGenerator />;
          case 'settings': return <Settings />;
          case 'sold_items': return <SoldItems currentUser={currentUser} />;

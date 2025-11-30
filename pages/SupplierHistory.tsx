@@ -5,7 +5,7 @@ import { StorageService } from '../services/storage';
 import { Purchase, PaymentStatus, Supplier, UserRole, User, PaymentMethod, StoreSettings, PurchaseType } from '../types';
 import { formatIDR, formatDate, exportToCSV } from '../utils';
 import { generatePrintPurchaseDetail } from '../utils/printHelpers';
-import { Download, Search, Filter, RotateCcw, X, Eye, Printer, FileSpreadsheet } from 'lucide-react';
+import { Download, Search, Filter, RotateCcw, X, Eye, Printer, FileSpreadsheet, Truck as TruckIcon } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 interface SupplierHistoryProps {
@@ -255,10 +255,16 @@ export const SupplierHistory: React.FC<SupplierHistoryProps> = ({ currentUser })
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 animate-fade-in">
             <div className="flex flex-col gap-4 border-b border-slate-200 pb-4">
                 <div className="flex flex-wrap justify-between items-center gap-4">
-                    <h1 className="text-2xl font-bold text-slate-800">Riwayat Supplier</h1>
+                    <div>
+                        <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                            <TruckIcon className="text-orange-600" />
+                            Riwayat Supplier
+                        </h1>
+                        <p className="text-slate-500 text-sm mt-1">Lacak riwayat pembelian dan aktivitas supplier</p>
+                    </div>
                     <div className="flex gap-2">
                         <button onClick={handlePrint} className="text-sm flex items-center gap-2 bg-white border border-slate-300 px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-50">
                             <Printer size={16} /> Print
