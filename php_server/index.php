@@ -150,6 +150,14 @@ if ($id === 'batch' && $method === 'POST') {
                 }
             }
 
+            // Validate Input (Fix P9: Batch Insert Validation Bypass)
+            $validationErrors = validateInput($resource, $item);
+            if (!empty($validationErrors)) {
+                // In batch, we might want to skip invalid items or fail the whole batch.
+                // For data integrity, failing the batch is safer.
+                throw new Exception("Validation failed for item: " . json_encode($validationErrors));
+            }
+
             // Validate columns
             foreach ($columns as $col) {
                 if (!preg_match('/^[a-zA-Z0-9_]+$/', $col)) {

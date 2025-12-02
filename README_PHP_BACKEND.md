@@ -83,7 +83,7 @@ php_server/
 ## 🔐 Fitur Utama
 
 ### 1. Kompatibilitas Penuh dengan Frontend
-Backend PHP ini dirancang untuk meniru API response dari backend Node.js, sehingga frontend React dapat bekerja tanpa perubahan kode (hanya ganti URL API).
+Backend PHP ini dirancang untuk menyediakan API yang dibutuhkan oleh frontend React.
 
 ### 2. Logika Bisnis (`logic.php`)
 File `logic.php` menangani operasi kompleks seperti:

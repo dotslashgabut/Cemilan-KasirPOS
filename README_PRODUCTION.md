@@ -95,7 +95,7 @@ Metode ini paling mudah dan murah, cocok untuk shared hosting standar.
 
 
 
-### Opsi C: Deployment dengan Docker
+### Opsi B: Deployment dengan Docker
 
 Lihat panduan lengkap di **[README_DOCKER.md](README_DOCKER.md)** untuk deployment menggunakan Docker dan Docker Compose.
 
@@ -112,18 +112,18 @@ Jika Anda menggunakan VPS atau server lain untuk PHP:
 
 1.  Buat database MySQL baru di server produksi.
 2.  Import file `cemilankasirpos_php.sql` atau `cemilankasirpos_big_dummy_data.sql`.
-3.  Pastikan kredensial database di `server/.env.production` sudah benar.
+3.  Pastikan kredensial database di `php_server/config.php` sudah benar.
 4.  Verifikasi koneksi database dengan menjalankan backend dan cek log.
 
 ---
 
 ## 5. Checklist Keamanan Produksi
 
-Sebelum launching, pastikan:
+Before launching, pastikan:
 
 ### Backend (PHP)
 - [ ] File `config.php` sudah dikonfigurasi dengan benar.
-- [ ] `JWT_SECRET` di `auth.php` menggunakan string random yang kuat.
+- [ ] `JWT_SECRET` di `auth.php` menggunakan string random yang kuat (via Environment Variable atau edit file).
 - [ ] CORS hanya mengizinkan domain produksi Anda.
 - [ ] `SHOW_DEBUG_ERRORS` diset ke `false`.
 - [ ] File log dan json sensitif dilindungi dari akses publik.
@@ -146,7 +146,7 @@ Sebelum launching, pastikan:
 - [ ] Gunakan **HTTPS** (SSL/TLS) untuk semua koneksi.
 - [ ] Firewall dikonfigurasi dengan benar (hanya port yang diperlukan terbuka).
 - [ ] Database backup otomatis sudah disetup.
-- [ ] Monitoring dan logging sudah aktif (PM2, CloudWatch, dll).
+- [ ] Monitoring dan logging sudah aktif (Cek error logs server).
 
 ### Testing
 - [ ] Test login dan autentikasi.
@@ -159,7 +159,6 @@ Sebelum launching, pastikan:
 ## 6. Troubleshooting Produksi
 
 ### Backend Tidak Bisa Diakses
-### Backend Tidak Bisa Diakses
 - Cek log error PHP (biasanya `error_log` di folder yang sama atau log server).
 - **Note**: Jika `php_error.log` tidak bisa dibuka di browser (403 Forbidden), itu normal (fitur keamanan). Cek via File Manager/FTP.
 - Verifikasi konfigurasi database di `config.php`.
@@ -169,7 +168,7 @@ Sebelum launching, pastikan:
 - Cek apakah HTTPS/HTTP konsisten (jangan mix).
 
 ### Database Connection Error
-- Verifikasi kredensial di `.env.production`.
+- Verifikasi kredensial di `config.php`.
 - Cek apakah MySQL service berjalan.
 - Pastikan user database punya privilege yang cukup.
 

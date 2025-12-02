@@ -2,7 +2,7 @@
 
 Panduan ini menjelaskan cara meng-hosting aplikasi Cemilan KasirPOS menggunakan **Backend PHP Native** (Rekomendasi Utama) ke shared hosting cPanel.
 
-> **Catatan:** Jika Anda ingin menggunakan Backend Node.js, silakan lihat bagian [Alternatif: Backend Node.js](#alternatif-backend-nodejs) di bawah.
+
 
 ## 📋 Prasyarat
 
@@ -86,40 +86,3 @@ Panduan ini menjelaskan cara meng-hosting aplikasi Cemilan KasirPOS menggunakan 
 
 ---
 
-# <a id="alternatif-backend-nodejs"></a>Alternatif: Backend Node.js
-
-Jika Anda lebih memilih menggunakan Node.js (memerlukan fitur "Setup Node.js App" di cPanel), ikuti langkah berikut:
-
-## ⚙️ Langkah 1 (Node.js): Upload Backend
-
-1.  Buka **File Manager** di cPanel.
-2.  Buat folder baru di luar `public_html` agar lebih aman (misal: `/home/u12345/cemilan-backend-node`).
-3.  Upload semua isi dari folder `server` di komputer Anda ke dalam folder tersebut.
-    *   **JANGAN** upload folder `node_modules`.
-4.  Buat file `.env` di dalam folder backend tersebut dan isi konfigurasi database.
-
-## 🚀 Langkah 2 (Node.js): Konfigurasi di cPanel
-
-1.  Di dashboard cPanel, cari dan buka menu **Setup Node.js App**.
-2.  Klik **Create Application**.
-3.  Isi form:
-    *   **Application Root**: `cemilan-backend-node`.
-    *   **Application URL**: `api.tokocemilan.com` (atau subfolder).
-    *   **Startup File**: `index.js`.
-4.  Klik **Create** lalu **Run NPM Install**.
-
-## 🖥️ Langkah 3 (Node.js): Build Frontend
-
-1.  Ubah `.env.production` di lokal: `VITE_API_URL=https://api.tokocemilan.com` (sesuaikan dengan URL Node.js App Anda).
-2.  Jalankan `npm run build`.
-3.  Upload isi folder `dist` ke `public_html`.
-4.  Setup `.htaccess` standar React (tanpa pengecualian `/api` jika API beda domain).
-
-## 🛡️ Troubleshooting
-
-1.  **API Error / Network Error**:
-    *   Cek Console browser (F12).
-    *   Coba akses URL API langsung di browser (misal: `https://tokocemilan.com/api/index.php`). Jika muncul JSON error atau blank, berarti PHP jalan. Jika 404, cek letak folder.
-2.  **Database Connection Error**:
-    *   Cek file `php_error.log` di dalam folder `api` (jika ada).
-    *   Pastikan user DB dan password di `config.php` sudah benar.

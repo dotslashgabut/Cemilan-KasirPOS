@@ -4,8 +4,19 @@
 
 // JWT Secret Key (Change this in production!)
 // JWT Secret Key
-// In production, this should be set in environment variables or a secure config file outside the web root.
-$jwt_secret = getenv('JWT_SECRET') ?: 'rahasia_dapur_cemilan_kasirpos_2025_secure_key_backend_php_test';
+// In production, this MUST be set in environment variables.
+$jwt_secret = getenv('JWT_SECRET');
+
+if (!$jwt_secret) {
+    // Default for Development ONLY
+    if (defined('SHOW_DEBUG_ERRORS') && !SHOW_DEBUG_ERRORS) {
+        // In production (debug off), we should ideally fail if no secret is set
+        // But to prevent breaking existing setups without .env, we'll use a fallback but log a critical warning
+        error_log("CRITICAL SECURITY WARNING: Using default JWT secret in production. Please set JWT_SECRET in .env!");
+    }
+    $jwt_secret = 'rahasia_dapur_cemilan_kasirpos_2025_secure_key_backend_php_dev_fallback';
+}
+
 define('JWT_SECRET', $jwt_secret);
 
 // Helper: URL Safe Base64 Encode

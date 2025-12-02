@@ -26,7 +26,6 @@ cd cemilan-kasirpos
 
 ### 2. Setup Backend (PHP Native)
 
-
 Jika Anda berencana men-deploy aplikasi ke shared hosting (cPanel), opsi ini paling mudah.
 
 1.  **Prasyarat**:
@@ -88,7 +87,6 @@ Frontend menggunakan:
 Buat atau edit file `.env` di root project:
 
 ```env
-```env
 VITE_API_URL=http://localhost:8000/api
 ```
 
@@ -123,7 +121,7 @@ cemilan-kasirpos/
 │   └── api.ts               # Axios instance & API calls
 ├── hooks/                    # Custom React hooks
 ├── utils/                    # Utility functions
-├── server/                   # (Deprecated) Backend Node.js/Express API files
+├── server/                   # (Unused) Legacy Node.js/Express API files
 │
 ├── public/                   # Static assets
 ├── App.tsx                  # Main app component
@@ -133,7 +131,7 @@ cemilan-kasirpos/
 ├── package.json             # Frontend dependencies
 ├── vite.config.ts           # Vite configuration
 ├── tailwind.config.js       # Tailwind CSS configuration
-└── tsconfig.json            # TypeScript configuration
+├── tsconfig.json            # TypeScript configuration
 ```
 
 ## 🔧 Workflow Pengembangan
@@ -147,7 +145,7 @@ cemilan-kasirpos/
 
 2. **Testing API**:
    - Gunakan Postman, Thunder Client, atau curl
-   - Contoh: `curl http://localhost:3001/api/products`
+   - Contoh: `curl http://localhost:8000/api/products`
 
 ### Frontend Development
 
@@ -198,7 +196,7 @@ Error: connect ECONNREFUSED 127.0.0.1:3306
 ```
 **Solusi**:
 - Pastikan MySQL service berjalan
-- Cek kredensial di `server/.env`
+- Cek kredensial di `php_server/config.php`
 - Verifikasi database sudah dibuat
 - Test koneksi: `mysql -u root -p`
 
@@ -208,13 +206,11 @@ Error: listen EADDRINUSE: address already in use :::8000
 ```
 **Solusi**:
 - Cari proses yang menggunakan port: `netstat -ano | findstr :8000` (Windows)
-- Kill proses tersebut atau ubah `PORT` di `.env`
-
-
+- Kill proses tersebut atau ubah port saat menjalankan `php -S`
 
 **❌ CORS Error**
 ```
-Access to fetch at 'http://localhost:3001/api/...' has been blocked by CORS policy
+Access to fetch at 'http://localhost:8000/api/...' has been blocked by CORS policy
 ```
 **Solusi**:
 - Cek konfigurasi CORS di `php_server/config.php`
@@ -272,10 +268,10 @@ Jika menggunakan file SQL dengan dummy data:
 
 ## 🛡️ Catatan Keamanan (Security Note)
 
-Aplikasi ini memiliki fitur keamanan yang bergantung pada environment variable `NODE_ENV`.
+Aplikasi ini memiliki fitur keamanan yang bergantung pada konfigurasi environment.
 
-*   **Development (`NODE_ENV=development`)**: Error akan ditampilkan secara detail (stack trace) untuk memudahkan debugging.
-*   **Production (`NODE_ENV=production`)**: Error detail akan disembunyikan dan diganti dengan pesan generik untuk keamanan.
+*   **Backend (PHP)**: Gunakan `SHOW_DEBUG_ERRORS=false` di `config.php` atau environment variable untuk menyembunyikan error detail di production.
+*   **Frontend (React)**: `NODE_ENV=production` (otomatis saat build) akan mengoptimalkan bundle dan menghapus warning development.
 
 > Pastikan Anda membaca **[SECURITY_AUDIT.md](./SECURITY_AUDIT.md)** untuk memahami audit keamanan dan praktik terbaik sebelum melakukan deployment.
 

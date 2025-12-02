@@ -62,12 +62,19 @@ if (!defined('DB_USER')) define('DB_USER', 'root');
 if (!defined('DB_PASS')) define('DB_PASS', '');
 
 // CORS Settings
-// CORS Settings
-// Allow all origins for flexibility (Dev/Prod/Hosting)
+// Allow specific origins if defined in .env, otherwise default to * (Dev only)
+$allowedOriginsEnv = getenv('ALLOWED_ORIGINS');
+$allowedOrigins = $allowedOriginsEnv ? explode(',', $allowedOriginsEnv) : [];
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 
-// Always set CORS headers
-header("Access-Control-Allow-Origin: " . ($origin ? $origin : '*'));
+if (!empty($allowedOrigins) && in_array($origin, $allowedOrigins)) {
+    header("Access-Control-Allow-Origin: $origin");
+} else {
+    // Fallback for development or if no specific origins defined
+    // In production, it is highly recommended to set ALLOWED_ORIGINS in .env
+    header("Access-Control-Allow-Origin: " . ($origin ? $origin : '*'));
+}
+
 header("Access-Control-Allow-Credentials: true");
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
@@ -85,7 +92,14 @@ if (isset($_SERVER['REQUEST_METHOD'])) {
     header("X-Frame-Options: DENY");
     header("X-Content-Type-Options: nosniff");
     header("X-XSS-Protection: 1; mode=block");
-    // header("Strict-Transport-Security: max-age=31536000; includeSubDomains"); // Enable if using HTTPS
+    
+    // HSTS (HTTP Strict Transport Security)
+    // Enabled by default for security. Ensure your server supports HTTPS.
+    // If you are on localhost without SSL, this might be ignored by browsers or cause issues if you forced it previously.
+    // Recommended for Production.
+    if (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') {
+        header("Strict-Transport-Security: max-age=31536000; includeSubDomains");
+    }
 }
 
 // Database Connection
