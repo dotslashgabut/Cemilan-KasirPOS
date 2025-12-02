@@ -40,7 +40,7 @@ File terkait: `php_server/auth.php`
 **PENTING:** Anda **WAJIB** mengganti `JWT_SECRET` di production agar token tidak bisa dipalsukan.
 
 **Cara Mengganti Secret:**
-1.  Buka file `.env` di folder backend (atau set environment variable server).
+1.  Buka file `.env` di folder backend.
 2.  Tambahkan/Edit baris:
     ```env
     JWT_SECRET=GantiStringIniDenganKarakterAcakYangSangatPanjangDanRumit!@#123
@@ -52,7 +52,7 @@ File terkait: `php_server/auth.php`
 
 CORS adalah mekanisme keamanan browser yang membatasi bagaimana halaman web di satu domain bisa meminta resource dari domain lain.
 
-File konfigurasi: `php_server/config.php`
+File konfigurasi: `php_server/config.php` (membaca dari `.env`)
 
 ### Kode Implementasi Saat Ini
 
@@ -96,12 +96,11 @@ Pada skenario ini, Frontend dan Backend berada di domain yang sama, hanya beda f
 
 **Konfigurasi yang Disarankan:**
 
-1.  **Backend (`php_server/config.php`)**:
-    Anda bisa membatasi origin secara spesifik atau membiarkannya dinamis karena masih satu domain.
-    ```php
-    // Lebih aman: Spesifik
-    header("Access-Control-Allow-Origin: https://tokocemilan.com");
-    ```
+    1.  **Backend (`php_server/.env`)**:
+        Anda bisa membatasi origin secara spesifik.
+        ```env
+        ALLOWED_ORIGINS=https://tokocemilan.com
+        ```
 
 2.  **Frontend (`.env.production`)**:
     Set URL API relatif atau absolut.
@@ -129,30 +128,14 @@ Skenario ini memisahkan Frontend dan Backend di domain atau subdomain berbeda. I
 
 **Konfigurasi yang Disarankan:**
 
-1.  **Backend (`php_server/config.php`)**:
-    **Sangat Disarankan** untuk membatasi origin hanya ke domain Frontend Anda demi keamanan. Jangan gunakan `*`.
+1.  **Backend (`php_server/.env`)**:
+    **Sangat Disarankan** untuk membatasi origin hanya ke domain Frontend Anda demi keamanan.
 
-    ```php
-    // php_server/config.php
+    ```env
+    # php_server/.env
     
-    // Daftar domain yang diizinkan
-    $allowed_origins = [
-        'https://app.tokocemilan.com',
-        'https://tokocemilan.vercel.app'
-    ];
-
-    $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-
-    if (in_array($origin, $allowed_origins)) {
-        header("Access-Control-Allow-Origin: $origin");
-    } else {
-        // Opsional: Tolak request atau biarkan tanpa header CORS (browser akan blokir)
-        // header("HTTP/1.1 403 Forbidden");
-        // exit();
-    }
-    
-    header("Access-Control-Allow-Credentials: true");
-    // ... header lainnya tetap sama
+    # Daftar domain yang diizinkan (pisahkan dengan koma)
+    ALLOWED_ORIGINS=https://app.tokocemilan.com,https://tokocemilan.vercel.app
     ```
 
 2.  **Frontend (`.env.production`)**:
@@ -170,7 +153,7 @@ Skenario ini memisahkan Frontend dan Backend di domain atau subdomain berbeda. I
 
 ### 1. Error "CORS Policy: No 'Access-Control-Allow-Origin' header..."
 *   **Penyebab**: Backend tidak mengirim header CORS, atau Origin frontend tidak ada di daftar yang diizinkan backend.
-*   **Solusi**: Cek `php_server/config.php`. Pastikan domain frontend Anda tertulis persis (termasuk `https://` dan tanpa slash di akhir).
+*   **Solusi**: Cek `php_server/.env`. Pastikan domain frontend Anda tertulis persis di `ALLOWED_ORIGINS`.
 
 ### 2. Error "401 Unauthorized" padahal sudah login
 *   **Penyebab**: Token JWT tidak terkirim di header, atau Token expired, atau JWT Secret di backend berubah (misal setelah deploy ulang tanpa .env yang persisten).

@@ -218,7 +218,6 @@ See [README_DEVELOPMENT.md](./README_DEVELOPMENT.md) for detailed setup instruct
 ├── services/     # API and storage services
 ├── hooks/        # Custom React hooks (useData, etc.)
 ├── utils/        # Utility functions and helpers
-├── server/       # (Unused) Legacy Node.js/Express API files
 ├── types.ts      # TypeScript type definitions
 ├── App.tsx       # Main application component
 ├── index.tsx     # Entry point

@@ -26,7 +26,7 @@ cd cemilan-kasirpos
 
 ### 2. Setup Backend (PHP Native)
 
-Jika Anda berencana men-deploy aplikasi ke shared hosting (cPanel), opsi ini paling mudah.
+Backend aplikasi ini menggunakan **PHP Native**. Berikut cara setupnya:
 
 1.  **Prasyarat**:
     *   Pastikan PHP (versi 7.4 atau 8.x) dan MySQL terinstall (bisa via XAMPP, Laragon, atau install manual).
@@ -37,13 +37,14 @@ Jika Anda berencana men-deploy aplikasi ke shared hosting (cPanel), opsi ini pal
     *   Import file `cemilankasirpos_php.sql` ke database tersebut.
 
 3.  **Konfigurasi**:
-    *   Buka file `php_server/config.php`.
-    *   Sesuaikan konfigurasi database:
-        ```php
-        define('DB_HOST', 'localhost');
-        define('DB_USER', 'root'); // Sesuaikan user DB lokal Anda
-        define('DB_PASS', '');     // Sesuaikan password DB lokal Anda
-        define('DB_NAME', 'cemilankasirpos_php');
+    *   Masuk ke folder `php_server`.
+    *   Salin `.env.example` menjadi `.env`.
+    *   Edit `.env` dan sesuaikan konfigurasi database:
+        ```env
+        DB_HOST=localhost
+        DB_USER=root
+        DB_PASS=
+        DB_NAME=cemilankasirpos_php
         ```
 
 4.  **Jalankan Server**:
@@ -121,7 +122,6 @@ cemilan-kasirpos/
 │   └── api.ts               # Axios instance & API calls
 ├── hooks/                    # Custom React hooks
 ├── utils/                    # Utility functions
-├── server/                   # (Unused) Legacy Node.js/Express API files
 │
 ├── public/                   # Static assets
 ├── App.tsx                  # Main app component

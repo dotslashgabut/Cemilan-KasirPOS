@@ -23,7 +23,7 @@ This document outlines the security audit findings for the Cemilan KasirPOS appl
 
 ## Detailed Findings
 
-### PHP Backend (Primary)
+### PHP Backend
 
 *These findings apply to the `php_server` directory.*
 

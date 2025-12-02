@@ -1,6 +1,6 @@
 # Dokumentasi Backend PHP - Cemilan KasirPOS
 
-Dokumen ini menjelaskan cara instalasi, konfigurasi, dan penggunaan backend **PHP Native** untuk aplikasi Cemilan KasirPOS. Backend ini adalah **opsi utama** yang direkomendasikan untuk pengguna shared hosting (cPanel) karena kemudahan deployment dan kompatibilitas yang luas.
+Dokumen ini menjelaskan cara instalasi, konfigurasi, dan penggunaan backend **PHP Native** untuk aplikasi Cemilan KasirPOS. Backend ini adalah **backend standar** yang digunakan oleh aplikasi ini karena kemudahan deployment dan kompatibilitas yang luas.
 
 ## 📋 Prasyarat
 
@@ -18,23 +18,29 @@ Backend terletak di dalam folder `php_server` di root proyek.
 cd php_server
 ```
 
-### 2. Konfigurasi Database (`config.php`)
-Buka file `config.php` dan sesuaikan kredensial database Anda:
+### 2. Konfigurasi Database (`.env`)
+Salin file `.env.example` menjadi `.env` di dalam folder `php_server`, lalu sesuaikan kredensial database Anda:
 
-```php
-// config.php
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'cemilankasirpos_php'); // Pastikan nama database sesuai
-define('DB_USER', 'root');
-define('DB_PASS', ''); // Isi password jika ada
+```bash
+cp .env.example .env
 ```
 
-### 3. Konfigurasi Keamanan (`auth.php`)
-Buka file `auth.php` dan ganti `JWT_SECRET` dengan string acak yang aman untuk produksi:
+Edit file `.env`:
 
-```php
-// auth.php
-$jwt_secret = getenv('JWT_SECRET') ?: 'ganti_dengan_string_rahasia_yang_panjang_dan_acak';
+```env
+# Database Configuration
+DB_HOST=localhost
+DB_NAME=cemilankasirpos_php
+DB_USER=root
+DB_PASS=
+```
+
+### 3. Konfigurasi Keamanan (`.env`)
+Di file `.env` yang sama, ganti `JWT_SECRET` dengan string acak yang aman untuk produksi:
+
+```env
+# Security Configuration
+JWT_SECRET=ganti_dengan_string_rahasia_yang_panjang_dan_acak
 ```
 
 ## ▶️ Menjalankan Server
@@ -71,7 +77,9 @@ VITE_API_URL=http://localhost/path/ke/php_server/index.php/api
 
 ```
 php_server/
-├── config.php         # Konfigurasi Database & CORS
+├── .env               # Konfigurasi Environment (Database, JWT, dll)
+├── .env.example       # Template Konfigurasi
+├── config.php         # Loader Konfigurasi & CORS
 ├── auth.php           # Middleware Autentikasi & JWT
 ├── index.php          # Router Utama & CRUD Generik
 ├── logic.php          # Logika Bisnis Kompleks (Transaksi, Stok, dll)

@@ -96,7 +96,7 @@ Upload php_server/ → /public_html/php_server/
 ### 2.2 Konfigurasi .env Backend
 
 1. Di File Manager, masuk ke `public_html/php_server/`
-2. Buat file baru: `.env`
+2. Buat file baru: `.env` (atau rename `.env.example` menjadi `.env`)
 3. Isi dengan:
 
 ```env
