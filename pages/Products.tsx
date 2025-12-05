@@ -399,10 +399,14 @@ export const Products: React.FC = () => {
           <button onClick={() => setIsCategoryModalOpen(true)} className="bg-white border border-slate-300 text-slate-700 px-3 py-2 rounded-lg flex items-center gap-2 hover:bg-slate-50 text-sm font-medium">
             <Tag size={16} /> Kategori
           </button>
-          <label className="bg-white border border-slate-300 text-slate-700 px-3 py-2 rounded-lg flex items-center gap-2 hover:bg-slate-50 cursor-pointer text-sm font-medium">
-            <Upload size={16} /> Import CSV
-            <input type="file" accept=".csv" className="hidden" onChange={handleImport} />
-          </label>
+
+          {/* Hide Import CSV for Cashier */}
+          {(JSON.parse(localStorage.getItem('pos_current_user') || '{}') as any).role !== UserRole.CASHIER && (
+            <label className="bg-white border border-slate-300 text-slate-700 px-3 py-2 rounded-lg flex items-center gap-2 hover:bg-slate-50 cursor-pointer text-sm font-medium">
+              <Upload size={16} /> Import CSV
+              <input type="file" accept=".csv" className="hidden" onChange={handleImport} />
+            </label>
+          )}
           <button onClick={handleExportExcel} className="bg-green-50 border border-green-200 text-green-700 px-3 py-2 rounded-lg flex items-center gap-2 hover:bg-green-100 text-sm font-medium">
             <FileSpreadsheet size={16} /> Excel
           </button>
