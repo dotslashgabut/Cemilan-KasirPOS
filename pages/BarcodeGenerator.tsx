@@ -4,6 +4,7 @@ import { StorageService } from '../services/storage';
 import { Product } from '../types';
 import { Barcode, Search, Printer, X } from 'lucide-react';
 import { formatIDR } from '../utils';
+import JsBarcode from 'jsbarcode';
 
 export const BarcodeGenerator: React.FC = () => {
     const products = useData(() => StorageService.getProducts(), [], 'products') || [];
@@ -45,11 +46,31 @@ export const BarcodeGenerator: React.FC = () => {
             Array(item.count).fill(item.product)
         );
 
+        // Pre-generate SVG strings inside the main app context
+        const itemsWithSvg = barcodeItems.map(p => {
+            const svgNode = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            try {
+                JsBarcode(svgNode, p.sku, {
+                    format: "CODE128",
+                    displayValue: true,
+                    fontSize: 12,
+                    height: 30,
+                    margin: 0
+                });
+                return {
+                    ...p,
+                    svgHtml: new XMLSerializer().serializeToString(svgNode)
+                };
+            } catch (error) {
+                console.error("Error generating barcode for", p.sku, error);
+                return { ...p, svgHtml: '<div style="color:red; font-size:10px;">Error Barcode</div>' };
+            }
+        });
+
         const html = `
       <html>
         <head>
           <title>Cetak Barcode</title>
-          <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
           <style>
             @page { size: A4; margin: 10mm; }
             body { font-family: sans-serif; padding: 0; margin: 0; }
@@ -90,24 +111,15 @@ export const BarcodeGenerator: React.FC = () => {
         </head>
         <body>
           <div class="barcode-container">
-            ${barcodeItems.map((p, idx) => `
+            ${itemsWithSvg.map((p) => `
               <div class="barcode-item">
                 <div class="product-name">${p.name}</div>
-                <svg id="barcode-${idx}"></svg>
+                ${p.svgHtml}
                 <div class="product-price">${formatIDR(p.priceRetail)}</div>
               </div>
             `).join('')}
           </div>
           <script>
-            ${barcodeItems.map((p, idx) => `
-              JsBarcode("#barcode-${idx}", "${p.sku}", {
-                format: "CODE128",
-                displayValue: true,
-                fontSize: 12,
-                height: 30,
-                margin: 0
-              });
-            `).join('')}
             window.onload = () => {
               window.print();
             }
