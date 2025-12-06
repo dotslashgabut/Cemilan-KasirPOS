@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { LayoutDashboard, ShoppingCart, Package, Receipt, Wallet, Settings, LogOut, Users, Menu, ChevronLeft, Barcode, ShoppingBag, UserCheck, Truck, ArrowRightLeft, Undo2 } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Package, Receipt, Wallet, Settings, LogOut, Users, Menu, ChevronLeft, Barcode, ShoppingBag, UserCheck, Truck, ArrowRightLeft, Undo2, Info } from 'lucide-react';
 import { UserRole } from '../types';
 
 interface LayoutProps {
@@ -77,6 +77,9 @@ export const Layout: React.FC<LayoutProps> = ({ children, activePage, onNavigate
       items.push({ id: 'barcode', label: 'Cetak Barcode', icon: Barcode });
       items.push({ id: 'settings', label: 'Pengaturan', icon: Settings });
     }
+
+    // Menu About selalu di paling bawah
+    items.push({ id: 'about', label: 'Tentang Aplikasi', icon: Info });
 
     return items;
   }, [userRole]);

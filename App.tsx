@@ -17,6 +17,7 @@ const CustomerHistory = React.lazy(() => import('./pages/CustomerHistory').then(
 const SupplierHistory = React.lazy(() => import('./pages/SupplierHistory').then(module => ({ default: module.SupplierHistory })));
 const TransferHistory = React.lazy(() => import('./pages/TransferHistory').then(module => ({ default: module.TransferHistory })));
 const ReturnHistory = React.lazy(() => import('./pages/ReturnHistory').then(module => ({ default: module.ReturnHistory })));
+const About = React.lazy(() => import('./pages/About').then(module => ({ default: module.About })));
 
 import { UserRole, User } from './types';
 import { Lock, User as UserIcon, Eye, EyeOff } from 'lucide-react';
@@ -179,6 +180,7 @@ const App: React.FC = () => {
          case 'barcode': return <BarcodeGenerator />;
          case 'settings': return <Settings />;
          case 'sold_items': return <SoldItems currentUser={currentUser} />;
+         case 'about': return <About />;
          default: return <Dashboard />;
       }
    };

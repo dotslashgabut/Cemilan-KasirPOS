@@ -357,7 +357,7 @@ export const Settings: React.FC = () => {
 
 
     return (
-        <div className="max-w-5xl mx-auto animate-fade-in">
+        <div className="space-y-6 animate-fade-in">
             <div className="mb-8">
                 <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
                     <SettingsIcon className="text-slate-600" />
