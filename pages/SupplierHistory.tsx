@@ -5,7 +5,7 @@ import { StorageService } from '../services/storage';
 import { Purchase, PaymentStatus, Supplier, UserRole, User, PaymentMethod, StoreSettings, PurchaseType } from '../types';
 import { formatIDR, formatDate, exportToCSV } from '../utils';
 import { generatePrintPurchaseDetail } from '../utils/printHelpers';
-import { Download, Search, Filter, RotateCcw, X, Eye, Printer, FileSpreadsheet, Truck as TruckIcon } from 'lucide-react';
+import { Download, Search, Filter, RotateCcw, X, Eye, Printer, FileSpreadsheet, Truck as TruckIcon, Calendar } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 interface SupplierHistoryProps {
@@ -314,19 +314,31 @@ export const SupplierHistory: React.FC<SupplierHistoryProps> = ({ currentUser })
                     <div className="flex items-center gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200 w-fit">
                         <Filter size={16} className="text-slate-400" />
                         <span className="text-sm font-medium text-slate-600">Filter Tanggal:</span>
-                        <input
-                            type="date"
-                            className="bg-white border border-slate-300 rounded px-2 py-1 text-sm text-slate-700"
-                            value={startDate}
-                            onChange={e => setStartDate(e.target.value)}
-                        />
+                        <div className="relative flex items-center bg-white border border-slate-300 rounded px-2 py-1">
+                            <span className="text-sm text-slate-700 pr-6">
+                                {startDate ? new Date(startDate).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'dd/mm/yyyy'}
+                            </span>
+                            <input
+                                type="date"
+                                className="absolute inset-0 opacity-0 w-full h-full"
+                                value={startDate}
+                                onChange={e => setStartDate(e.target.value)}
+                            />
+                            <Calendar size={14} className="absolute right-2 text-slate-400 pointer-events-none" />
+                        </div>
                         <span className="text-slate-400">-</span>
-                        <input
-                            type="date"
-                            className="bg-white border border-slate-300 rounded px-2 py-1 text-sm text-slate-700"
-                            value={endDate}
-                            onChange={e => setEndDate(e.target.value)}
-                        />
+                        <div className="relative flex items-center bg-white border border-slate-300 rounded px-2 py-1">
+                            <span className="text-sm text-slate-700 pr-6">
+                                {endDate ? new Date(endDate).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'dd/mm/yyyy'}
+                            </span>
+                            <input
+                                type="date"
+                                className="absolute inset-0 opacity-0 w-full h-full"
+                                value={endDate}
+                                onChange={e => setEndDate(e.target.value)}
+                            />
+                            <Calendar size={14} className="absolute right-2 text-slate-400 pointer-events-none" />
+                        </div>
                         <button
                             onClick={() => { setStartDate(''); setEndDate(''); }}
                             className="p-1 text-slate-400 hover:text-slate-600 bg-slate-200 rounded ml-2"

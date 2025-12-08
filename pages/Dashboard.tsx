@@ -13,7 +13,18 @@ export const Dashboard: React.FC = () => {
   const [loadingAI, setLoadingAI] = useState(false);
   const [aiInsight, setAiInsight] = useState<string | null>(null);
   const [timeFilter, setTimeFilter] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('daily');
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [selectedWeekStart, setSelectedWeekStart] = useState<Date>(() => {
+    const now = new Date();
+    const day = now.getDay();
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+    const start = new Date(now);
+    start.setDate(diff);
+    start.setHours(0, 0, 0, 0);
+    return start;
+  });
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   // Load current user from localStorage
@@ -24,45 +35,76 @@ export const Dashboard: React.FC = () => {
     }
   }, []);
 
-  // --- Data Processing ---
+  // Sync selectedWeekStart when Month/Year changes in Weekly view
+  useEffect(() => {
+    if (timeFilter === 'weekly') {
+      const firstDay = new Date(selectedYear, selectedMonth, 1);
+      const lastDay = new Date(selectedYear, selectedMonth + 1, 0);
 
-  const getDateRange = useMemo(() => {
-    return () => {
-      const now = new Date();
-      let start = new Date();
-      start.setHours(0, 0, 0, 0);
+      const validStarts: number[] = [];
+      const firstDayDay = firstDay.getDay() || 7;
+      const iterDate = new Date(firstDay);
+      iterDate.setDate(firstDay.getDate() - (firstDayDay - 1));
+      iterDate.setHours(0, 0, 0, 0);
 
-      if (timeFilter === 'weekly') {
-        const day = now.getDay();
-        const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Adjust to Monday
-        start.setDate(diff);
-      } else if (timeFilter === 'monthly') {
-        start.setDate(1);
-      } else if (timeFilter === 'yearly') {
-        start = new Date(selectedYear, 0, 1); // January 1st of selected year
-        start.setHours(0, 0, 0, 0);
+      while (iterDate <= lastDay) {
+        validStarts.push(iterDate.getTime());
+        iterDate.setDate(iterDate.getDate() + 7);
       }
 
-      // For filtering, compare ISO strings YYYY-MM-DD
-      const startTime = start.getTime();
-      return startTime;
-    };
-  }, [timeFilter, selectedYear]);
+      const currentMilli = new Date(selectedWeekStart).setHours(0, 0, 0, 0);
+      const isValid = validStarts.some(t => Math.abs(t - currentMilli) < 1000 * 60 * 60 * 12); // Tolerance
+
+      if (!isValid && validStarts.length > 0) {
+        setSelectedWeekStart(new Date(validStarts[0]));
+      }
+    }
+  }, [selectedMonth, selectedYear, timeFilter, selectedWeekStart]);
+
+  // --- Data Processing ---
+
 
   const filteredTxs = useMemo(() => {
-    const startTime = getDateRange();
-    let endTime = new Date().getTime() + (24 * 60 * 60 * 1000); // End of today
+    let startTime = new Date().getTime();
+    let endTime = new Date().getTime();
 
-    if (timeFilter === 'yearly') {
-      // End of selected year (December 31st, 23:59:59)
-      endTime = new Date(selectedYear, 11, 31, 23, 59, 59).getTime();
+    if (timeFilter === 'daily') {
+      const start = new Date(selectedDate);
+      start.setHours(0, 0, 0, 0);
+      startTime = start.getTime();
+
+      const end = new Date(selectedDate);
+      end.setHours(23, 59, 59, 999);
+      endTime = end.getTime();
+    } else if (timeFilter === 'weekly') {
+      // Use selectedWeekStart
+      startTime = selectedWeekStart.getTime();
+      const end = new Date(selectedWeekStart);
+      end.setDate(end.getDate() + 6);
+      end.setHours(23, 59, 59, 999);
+      endTime = end.getTime();
+    } else if (timeFilter === 'monthly') {
+      const start = new Date(selectedYear, selectedMonth, 1);
+      start.setHours(0, 0, 0, 0);
+      startTime = start.getTime();
+
+      const end = new Date(selectedYear, selectedMonth + 1, 0);
+      end.setHours(23, 59, 59, 999);
+      endTime = end.getTime();
+    } else if (timeFilter === 'yearly') {
+      const start = new Date(selectedYear, 0, 1);
+      start.setHours(0, 0, 0, 0);
+      startTime = start.getTime();
+
+      const end = new Date(selectedYear, 11, 31, 23, 59, 59);
+      endTime = end.getTime();
     }
 
     return transactions.filter(t => {
       const tTime = new Date(t.date).getTime();
       return tTime >= startTime && tTime <= endTime;
     });
-  }, [transactions, timeFilter, selectedYear, getDateRange]);
+  }, [transactions, timeFilter, selectedDate, selectedWeekStart, selectedMonth, selectedYear]);
 
   // Stats
   const totalRevenue = useMemo(() => filteredTxs.reduce((sum, t) => sum + t.totalAmount, 0), [filteredTxs]);
@@ -319,20 +361,7 @@ export const Dashboard: React.FC = () => {
             </button>
           </div>
           <div className="flex items-center gap-2">
-            <label className={`text-sm font-medium ${timeFilter === 'yearly' ? 'text-slate-600' : 'text-slate-400'}`}>Tahun:</label>
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
-              disabled={timeFilter !== 'yearly'}
-              className={`px-4 py-2 text-sm font-medium border rounded-lg focus:outline-none shadow-sm transition-colors ${timeFilter === 'yearly'
-                ? 'border-slate-300 bg-white text-slate-900 focus:ring-2 focus:ring-blue-500 cursor-pointer'
-                : 'border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed'
-                }`}
-            >
-              {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map(year => (
-                <option key={year} value={year}>{year}</option>
-              ))}
-            </select>
+            {/* Year selector removed from here */}
           </div>
           {currentUser && (
             <div className="flex items-center gap-3 ml-2 bg-white border border-slate-200 rounded-lg px-3 py-2 shadow-sm">
@@ -427,8 +456,132 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Main Trend Chart */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 h-[350px]">
-        <h3 className="font-bold text-lg text-slate-800 mb-2">Tren Pendapatan ({timeLabel})</h3>
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 h-[400px]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+          <h3 className="font-bold text-lg text-slate-800">Tren Pendapatan ({timeLabel})</h3>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {timeFilter === 'daily' && (
+              <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5">
+                <span className="text-sm font-medium text-slate-500">Tanggal:</span>
+                <div className="relative flex items-center">
+                  <span className="text-sm font-medium text-slate-700 pr-6">
+                    {selectedDate.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }).split('/').join('/')}
+                  </span>
+                  <input
+                    type="date"
+                    value={selectedDate.toISOString().split('T')[0]}
+                    onChange={(e) => {
+                      const date = new Date(e.target.value);
+                      if (!isNaN(date.getTime())) setSelectedDate(date);
+                    }}
+                    className="absolute inset-0 opacity-0 w-full h-full"
+                  />
+                  <Calendar size={16} className="absolute right-0 text-slate-400 pointer-events-none" />
+                </div>
+              </div>
+            )}
+
+            {timeFilter === 'weekly' && (
+              <div className="flex flex-wrap item-center gap-2">
+                <select
+                  value={selectedWeekStart.toISOString()}
+                  onChange={(e) => setSelectedWeekStart(new Date(e.target.value))}
+                  className="px-3 py-1.5 text-sm font-medium border border-slate-300 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {/* Generate weeks for current selected month/year or just ranges */}
+                  {(() => {
+                    const weeks = [];
+                    // Generate weeks for the selected Year/Month to offer context
+                    // Or just +/- 4 weeks from current? 
+                    // Let's list weeks of the selected Month
+                    const firstDay = new Date(selectedYear, selectedMonth, 1);
+                    const lastDay = new Date(selectedYear, selectedMonth + 1, 0);
+
+                    // Adjust to Start of Week (Monday) of the week containing the 1st
+                    const firstDayDay = firstDay.getDay() || 7;
+                    let iterDate = new Date(firstDay);
+                    iterDate.setDate(firstDay.getDate() - (firstDayDay - 1));
+
+                    let weekNum = 1;
+                    // Show weeks until we pass the end of month
+                    while (iterDate <= lastDay) {
+                      const wStart = new Date(iterDate);
+                      const wEnd = new Date(iterDate);
+                      wEnd.setDate(wEnd.getDate() + 6);
+
+                      const label = `Minggu ke-${weekNum} (${wStart.getDate()} ${wStart.toLocaleDateString('id-ID', { month: 'short' })} - ${wEnd.getDate()} ${wEnd.toLocaleDateString('id-ID', { month: 'short' })})`;
+                      weeks.push(
+                        <option key={wStart.toISOString()} value={wStart.toISOString()}>{label}</option>
+                      );
+
+                      iterDate.setDate(iterDate.getDate() + 7);
+                      weekNum++;
+                    }
+                    return weeks;
+                  })()}
+                </select>
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                  className="px-3 py-1.5 text-sm font-medium border border-slate-300 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'].map((m, i) => (
+                    <option key={i} value={i}>{m}</option>
+                  ))}
+                </select>
+                <select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(Number(e.target.value))}
+                  className="px-3 py-1.5 text-sm font-medium border border-slate-300 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {timeFilter === 'monthly' && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-slate-500">Bulan:</span>
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                  className="px-3 py-1.5 text-sm font-medium border border-slate-300 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'].map((m, i) => (
+                    <option key={i} value={i}>{m}</option>
+                  ))}
+                </select>
+                <select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(Number(e.target.value))}
+                  className="px-3 py-1.5 text-sm font-medium border border-slate-300 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {timeFilter === 'yearly' && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-slate-500">Tahun:</span>
+                <select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(Number(e.target.value))}
+                  className="px-3 py-1.5 text-sm font-medium border border-slate-300 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map(year => (
+                    <option key={year} value={year}>{year}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+        </div>
         <div className="h-full w-full pb-6">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={revenueTrendData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>

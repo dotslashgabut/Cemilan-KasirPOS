@@ -4,11 +4,11 @@
 
 html,
 body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  overflow-x: hidden;
-  scroll-behavior: smooth;
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
 }
 
 /* Global Scrollbar */
@@ -22,17 +22,19 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #cbd5e1; /* slate-300 */
+    background: #cbd5e1;
+    /* slate-300 */
     border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8; /* slate-400 */
+    background: #94a3b8;
+    /* slate-400 */
 }
 
 body {
-  font-family: 'Inter', sans-serif;
-  background-color: #f1f5f9;
+    font-family: 'Inter', sans-serif;
+    background-color: #f1f5f9;
 }
 
 /* Hide scrollbar for Chrome, Safari and Opera */
@@ -42,8 +44,10 @@ body {
 
 /* Hide scrollbar for IE, Edge and Firefox */
 .no-scrollbar {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
 }
 
 /* Custom Scrollbar untuk Sidebar - Optimized */
@@ -97,4 +101,3 @@ aside {
     backface-visibility: hidden;
     perspective: 1000px;
 }
-
